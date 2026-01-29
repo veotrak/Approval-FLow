@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<savedsearch scriptid="customsearch_p2p_approval_bottlenecks">
+  <title>P2P Approval Bottlenecks</title>
+  <recordtype>customrecord_p2p_approval_history</recordtype>
+  <filters>
+    <filter field="custrecord_p2p_ah_timestamp" operator="within" values="last90days"/>
+  </filters>
+  <columns>
+    <column field="custrecord_p2p_ah_step_sequence" summary="GROUP"/>
+    <column field="custrecord_p2p_ah_action" summary="GROUP"/>
+    <column field="formulanumeric" summary="AVG">
+      <formula>{custrecord_p2p_ah_timestamp} - {created}</formula>
+    </column>
+  </columns>
+</savedsearch>

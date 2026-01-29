@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customlist scriptid="customlist_p2p_execution_mode">
+  <name>P2P Execution Mode</name>
+  <customvalues>
+    <customvalue scriptid="val_1"><value>Serial</value></customvalue>
+    <customvalue scriptid="val_2"><value>Parallel</value></customvalue>
+  </customvalues>
+</customlist>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suitelet scriptid="customscript_p2p_email_approval_sl">
+  <name>P2P Email Approval Suitelet</name>
+  <scriptfile>SuiteScripts/p2p_approvals/suitelet/p2p_email_approval_sl.js</scriptfile>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_p2p_email_approval">
+      <status>RELEASED</status>
+      <title>P2P Email Approval</title>
+      <ispublic>T</ispublic>
+    </scriptdeployment>
+  </scriptdeployments>
+</suitelet>

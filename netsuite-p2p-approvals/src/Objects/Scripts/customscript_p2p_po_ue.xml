@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<usereventscript scriptid="customscript_p2p_po_ue">
+  <name>P2P PO User Event</name>
+  <scriptfile>SuiteScripts/p2p_approvals/user_event/p2p_po_ue.js</scriptfile>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_p2p_po_ue">
+      <status>RELEASED</status>
+      <title>P2P PO UE</title>
+      <recordtype>purchaseorder</recordtype>
+    </scriptdeployment>
+  </scriptdeployments>
+</usereventscript>

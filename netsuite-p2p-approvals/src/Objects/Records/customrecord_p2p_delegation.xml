@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customrecordtype scriptid="customrecord_p2p_delegation">
+  <name>P2P Delegation</name>
+  <recordname>P2P Delegation</recordname>
+  <customrecordcustomfields>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_original">
+      <label>Original Approver</label>
+      <fieldtype>LIST</fieldtype>
+      <selectrecordtype>employee</selectrecordtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_delegate">
+      <label>Delegate</label>
+      <fieldtype>LIST</fieldtype>
+      <selectrecordtype>employee</selectrecordtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_start_date">
+      <label>Start Date</label>
+      <fieldtype>DATE</fieldtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_end_date">
+      <label>End Date</label>
+      <fieldtype>DATE</fieldtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_subsidiary">
+      <label>Subsidiary Scope</label>
+      <fieldtype>LIST</fieldtype>
+      <selectrecordtype>subsidiary</selectrecordtype>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_tran_type">
+      <label>Transaction Type Scope</label>
+      <fieldtype>LIST</fieldtype>
+      <selectrecordtype>customlist_p2p_tran_type</selectrecordtype>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_del_active">
+      <label>Active</label>
+      <fieldtype>CHECKBOX</fieldtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+  </customrecordcustomfields>
+</customrecordtype>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactionbodycustomfield scriptid="custbody_p2p_current_step">
+  <label>P2P Current Step</label>
+  <fieldtype>INTEGER</fieldtype>
+  <appliestopurchaseorder>T</appliestopurchaseorder>
+  <appliestovendorbill>T</appliestovendorbill>
+</transactionbodycustomfield>

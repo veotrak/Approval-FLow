@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapreducescript scriptid="customscript_p2p_bulk_process_mr">
+  <name>P2P Bulk Process Map/Reduce</name>
+  <scriptfile>SuiteScripts/p2p_approvals/map_reduce/p2p_bulk_process_mr.js</scriptfile>
+  <scriptcustomfields>
+    <scriptcustomfield scriptid="custscript_p2p_task_ids">
+      <label>Task IDs JSON</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_bulk_limit">
+      <label>Bulk Limit</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>50</defaultvalue>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_governance_threshold">
+      <label>Governance Threshold</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>200</defaultvalue>
+    </scriptcustomfield>
+  </scriptcustomfields>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_p2p_bulk_process">
+      <status>RELEASED</status>
+      <title>P2P Bulk Process</title>
+    </scriptdeployment>
+  </scriptdeployments>
+</mapreducescript>

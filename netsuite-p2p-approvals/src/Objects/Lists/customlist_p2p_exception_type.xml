@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customlist scriptid="customlist_p2p_exception_type">
+  <name>P2P Exception Type</name>
+  <customvalues>
+    <customvalue scriptid="val_1"><value>Missing PO Link</value></customvalue>
+    <customvalue scriptid="val_2"><value>Variance Over Limit</value></customvalue>
+    <customvalue scriptid="val_3"><value>Missing Receipt</value></customvalue>
+    <customvalue scriptid="val_4"><value>Multiple Exceptions</value></customvalue>
+  </customvalues>
+</customlist>

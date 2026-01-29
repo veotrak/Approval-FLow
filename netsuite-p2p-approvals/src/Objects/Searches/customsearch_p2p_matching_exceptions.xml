@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<savedsearch scriptid="customsearch_p2p_matching_exceptions">
+  <title>P2P Matching Exceptions</title>
+  <recordtype>vendorbill</recordtype>
+  <filters>
+    <filter field="custbody_p2p_exception_type" operator="noneof" values=""/>
+  </filters>
+  <columns>
+    <column field="tranid"/>
+    <column field="entity"/>
+    <column field="amount"/>
+    <column field="custbody_p2p_exception_type"/>
+    <column field="trandate"/>
+  </columns>
+</savedsearch>

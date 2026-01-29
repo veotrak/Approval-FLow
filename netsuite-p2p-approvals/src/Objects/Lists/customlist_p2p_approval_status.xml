@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customlist scriptid="customlist_p2p_approval_status">
+  <name>P2P Approval Status</name>
+  <customvalues>
+    <customvalue scriptid="val_1"><value>Draft</value></customvalue>
+    <customvalue scriptid="val_2"><value>Pending Approval</value></customvalue>
+    <customvalue scriptid="val_3"><value>Approved</value></customvalue>
+    <customvalue scriptid="val_4"><value>Rejected</value></customvalue>
+  </customvalues>
+</customlist>

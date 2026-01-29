@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<restlet scriptid="customscript_p2p_ai_integration_rl">
+  <name>P2P AI Integration RESTlet</name>
+  <scriptfile>SuiteScripts/p2p_approvals/restlet/p2p_ai_integration_rl.js</scriptfile>
+  <scriptcustomfields>
+    <scriptcustomfield scriptid="custscript_p2p_allowed_roles">
+      <label>Allowed Roles</label>
+      <fieldtype>TEXT</fieldtype>
+      <defaultvalue>3</defaultvalue>
+    </scriptcustomfield>
+  </scriptcustomfields>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_p2p_ai_integration">
+      <status>RELEASED</status>
+      <title>P2P AI Integration</title>
+    </scriptdeployment>
+  </scriptdeployments>
+</restlet>

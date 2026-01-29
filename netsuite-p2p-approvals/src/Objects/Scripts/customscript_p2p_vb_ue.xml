@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<usereventscript scriptid="customscript_p2p_vb_ue">
+  <name>P2P VB User Event</name>
+  <scriptfile>SuiteScripts/p2p_approvals/user_event/p2p_vb_ue.js</scriptfile>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_p2p_vb_ue">
+      <status>RELEASED</status>
+      <title>P2P VB UE</title>
+      <recordtype>vendorbill</recordtype>
+    </scriptdeployment>
+  </scriptdeployments>
+</usereventscript>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customlist scriptid="customlist_p2p_approver_type">
+  <name>P2P Approver Type</name>
+  <customvalues>
+    <customvalue scriptid="val_1"><value>Role</value></customvalue>
+    <customvalue scriptid="val_2"><value>Named Person</value></customvalue>
+  </customvalues>
+</customlist>

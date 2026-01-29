@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<savedsearch scriptid="customsearch_p2p_pending_by_age">
+  <title>P2P Pending Approvals by Age</title>
+  <recordtype>customrecord_p2p_approval_task</recordtype>
+  <filters>
+    <filter field="custrecord_p2p_at_status" operator="anyof" values="1"/>
+  </filters>
+  <columns>
+    <column field="formulanumeric" summary="GROUP">
+      <formula>CASE WHEN {created} &gt;= (SYSDATE - 1) THEN 1 WHEN {created} &gt;= (SYSDATE - 2) THEN 2 WHEN {created} &gt;= (SYSDATE - 3) THEN 3 ELSE 4 END</formula>
+    </column>
+    <column field="internalid" summary="COUNT"/>
+  </columns>
+</savedsearch>

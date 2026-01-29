@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customrecordtype scriptid="customrecord_p2p_loc_group_member">
+  <name>P2P Location Group Member</name>
+  <recordname>P2P Location Group Member</recordname>
+  <customrecordcustomfields>
+    <customrecordcustomfield scriptid="custrecord_p2p_lgm_group">
+      <label>Group</label>
+      <fieldtype>LIST</fieldtype>
+      <selectrecordtype>customrecord_p2p_loc_group</selectrecordtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+    <customrecordcustomfield scriptid="custrecord_p2p_lgm_location">
+      <label>Location</label>
+      <fieldtype>LIST</fieldtype>
+      <selectrecordtype>location</selectrecordtype>
+      <isrequired>T</isrequired>
+    </customrecordcustomfield>
+  </customrecordcustomfields>
+</customrecordtype>

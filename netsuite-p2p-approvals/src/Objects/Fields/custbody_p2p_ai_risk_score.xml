@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactionbodycustomfield scriptid="custbody_p2p_ai_risk_score">
+  <label>P2P AI Risk Score</label>
+  <fieldtype>DECIMALNUMBER</fieldtype>
+  <appliestopurchaseorder>T</appliestopurchaseorder>
+  <appliestovendorbill>T</appliestovendorbill>
+</transactionbodycustomfield>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customlist scriptid="customlist_p2p_approval_method">
+  <name>P2P Approval Method</name>
+  <customvalues>
+    <customvalue scriptid="val_1"><value>UI</value></customvalue>
+    <customvalue scriptid="val_2"><value>Email</value></customvalue>
+    <customvalue scriptid="val_3"><value>Bulk</value></customvalue>
+    <customvalue scriptid="val_4"><value>API</value></customvalue>
+  </customvalues>
+</customlist>
