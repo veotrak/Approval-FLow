@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customrecordtype scriptid="customrecord_p2p_global_config">
+  <n>P2P Global Config</n>
+  <recordname>P2P Global Config</recordname>
+  <description>Centralized configuration settings for P2P approval workflow (single record)</description>
+  <customrecordcustomfields>
+    <!-- ===== MATCHING THRESHOLDS ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_price_var_pct">
+      <label>Price Variance % Limit</label>
+      <fieldtype>PERCENT</fieldtype>
+      <defaultvalue>5</defaultvalue>
+      <help>Maximum allowed price variance percentage before exception</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_price_var_amt">
+      <label>Price Variance $ Limit</label>
+      <fieldtype>CURRENCY</fieldtype>
+      <defaultvalue>500</defaultvalue>
+      <help>Maximum allowed price variance amount before exception</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_fx_tolerance_pct">
+      <label>FX Tolerance %</label>
+      <fieldtype>PERCENT</fieldtype>
+      <defaultvalue>3</defaultvalue>
+      <help>Allowed exchange rate variance between PO and VB</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_po_threshold">
+      <label>PO Required Threshold</label>
+      <fieldtype>CURRENCY</fieldtype>
+      <defaultvalue>1000</defaultvalue>
+      <help>VB amount above which PO link is required</help>
+    </customrecordcustomfield>
+    
+    <!-- ===== TIMING SETTINGS ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_reminder_1_hrs">
+      <label>First Reminder (hours)</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>24</defaultvalue>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_reminder_2_hrs">
+      <label>Second Reminder (hours)</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>48</defaultvalue>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_escalation_hrs">
+      <label>Escalation (hours)</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>72</defaultvalue>
+      <help>Hours before escalating to manager</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_token_expiry_hrs">
+      <label>Email Token Expiry (hours)</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>72</defaultvalue>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_max_delegation_days">
+      <label>Max Delegation Days</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>30</defaultvalue>
+    </customrecordcustomfield>
+    
+    <!-- ===== AI / RISK SETTINGS ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_auto_approve_enabled">
+      <label>Auto-Approve Enabled</label>
+      <fieldtype>CHECKBOX</fieldtype>
+      <defaultvalue>F</defaultvalue>
+      <help>Enable auto-approval for low-risk POs</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_auto_approve_threshold">
+      <label>Auto-Approve Risk Threshold</label>
+      <fieldtype>INTEGER</fieldtype>
+      <help>Max risk score for auto-approval (0-100). Only applies to POs.</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_new_vendor_days">
+      <label>New Vendor Days</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>14</defaultvalue>
+      <help>Days to consider a vendor "new" for anomaly detection</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_min_vb_acct_anom">
+      <label>Min VBs for Account Anomaly</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>5</defaultvalue>
+      <help>Minimum vendor bills before detecting account anomalies</help>
+    </customrecordcustomfield>
+    
+    <!-- ===== REAPPROVAL SETTINGS ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_reapproval_mode">
+      <label>Reapproval Mode</label>
+      <fieldtype>TEXT</fieldtype>
+      <defaultvalue>material</defaultvalue>
+      <help>"material" = key fields only, "any" = all field changes</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_reapproval_body">
+      <label>Reapproval Body Fields</label>
+      <fieldtype>TEXTAREA</fieldtype>
+      <help>Comma-separated body field IDs to monitor for reapproval</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_reapproval_item">
+      <label>Reapproval Item Fields</label>
+      <fieldtype>TEXTAREA</fieldtype>
+      <help>Comma-separated item sublist field IDs to monitor</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_reapproval_expense">
+      <label>Reapproval Expense Fields</label>
+      <fieldtype>TEXTAREA</fieldtype>
+      <help>Comma-separated expense sublist field IDs to monitor</help>
+    </customrecordcustomfield>
+    
+    <!-- ===== NOTIFICATION SETTINGS ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_teams_webhook">
+      <label>Teams Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_slack_webhook">
+      <label>Slack Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </customrecordcustomfield>
+    
+    <!-- ===== BULK PROCESSING ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_bulk_limit">
+      <label>Bulk Approval Limit</label>
+      <fieldtype>INTEGER</fieldtype>
+      <defaultvalue>50</defaultvalue>
+    </customrecordcustomfield>
+    
+    <!-- ===== FALLBACK ===== -->
+    <customrecordcustomfield scriptid="custrecord_gc_fallback_path">
+      <label>Fallback Approval Path</label>
+      <fieldtype>SELECT</fieldtype>
+      <selectrecordtype>customrecord_p2p_approval_path</selectrecordtype>
+      <help>Path to use when no decision rule matches</help>
+    </customrecordcustomfield>
+    
+    <customrecordcustomfield scriptid="custrecord_gc_fallback_approver">
+      <label>Fallback Approver Role</label>
+      <fieldtype>SELECT</fieldtype>
+      <selectrecordtype>role</selectrecordtype>
+      <help>Role to notify when no rule matches and no fallback path</help>
+    </customrecordcustomfield>
+  </customrecordcustomfields>
+</customrecordtype>

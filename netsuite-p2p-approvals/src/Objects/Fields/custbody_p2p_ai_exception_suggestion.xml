@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<transactionbodycustomfield scriptid="custbody_p2p_ai_exception_suggestion">
-  <label>P2P AI Exception Suggestion</label>
-  <fieldtype>LIST</fieldtype>
-  <selectrecordtype>customlist_p2p_exception_type</selectrecordtype>
-  <appliestopurchaseorder>T</appliestopurchaseorder>
-  <appliestovendorbill>T</appliestovendorbill>
-</transactionbodycustomfield>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactionbodycustomfield scriptid="custbody_p2p_approval_path">
+  <label>P2P Approval Path</label>
+  <fieldtype>SELECT</fieldtype>
+  <selectrecordtype>customrecord_p2p_approval_path</selectrecordtype>
+  <appliestopurchaseorder>T</appliestopurchaseorder>
+  <appliestovendorbill>T</appliestovendorbill>
+  <help>The approval path being executed for this transaction</help>
+</transactionbodycustomfield>

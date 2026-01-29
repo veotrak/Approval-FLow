@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<customlist scriptid="customlist_p2p_match_status">
-  <name>P2P Match Status</name>
-  <customvalues>
-    <customvalue scriptid="val_1"><value>Not Checked</value></customvalue>
-    <customvalue scriptid="val_2"><value>Pass</value></customvalue>
-    <customvalue scriptid="val_3"><value>Fail</value></customvalue>
-  </customvalues>
-</customlist>

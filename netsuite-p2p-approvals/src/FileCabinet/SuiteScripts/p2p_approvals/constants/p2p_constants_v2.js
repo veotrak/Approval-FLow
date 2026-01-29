@@ -1,0 +1,298 @@
+/**
+ * @NApiVersion 2.1
+ * @NModuleScope Public
+ * P2P Approval Workflow - Constants (v2 - Decision Table Architecture)
+ */
+define([], function() {
+    'use strict';
+    
+    // ===== CUSTOM RECORD TYPES =====
+    const RECORD_TYPES = {
+        // New Decision Table Architecture
+        DECISION_RULE: 'customrecord_p2p_decision_rule',
+        APPROVAL_PATH: 'customrecord_p2p_approval_path',
+        PATH_STEP: 'customrecord_p2p_path_step',
+        GLOBAL_CONFIG: 'customrecord_p2p_global_config',
+        
+        // Kept from original
+        APPROVAL_TASK: 'customrecord_p2p_approval_task',
+        APPROVAL_HISTORY: 'customrecord_p2p_approval_history',
+        DELEGATION: 'customrecord_p2p_delegation',
+        
+        // Deprecated (kept for migration reference)
+        APPROVAL_RULE_LEGACY: 'customrecord_p2p_approval_rule',
+        APPROVAL_STEP_LEGACY: 'customrecord_p2p_approval_step',
+        DEPT_GROUP_LEGACY: 'customrecord_p2p_dept_group',
+        DEPT_GROUP_MEMBER_LEGACY: 'customrecord_p2p_dept_group_member',
+        LOC_GROUP_LEGACY: 'customrecord_p2p_loc_group',
+        LOC_GROUP_MEMBER_LEGACY: 'customrecord_p2p_loc_group_member'
+    };
+
+    // ===== TRANSACTION TYPES =====
+    const TRANSACTION_TYPES = {
+        PURCHASE_ORDER: '1',
+        VENDOR_BILL: '2'
+    };
+
+    const TRANSACTION_TYPE_MAP = {
+        purchaseorder: '1',
+        vendorbill: '2'
+    };
+
+    const TRANSACTION_TYPE_REVERSE = {
+        '1': 'purchaseorder',
+        '2': 'vendorbill'
+    };
+
+    // ===== LIST VALUES =====
+    const APPROVAL_STATUS = {
+        DRAFT: '1',
+        PENDING_APPROVAL: '2',
+        APPROVED: '3',
+        REJECTED: '4'
+    };
+
+    const APPROVAL_ACTION = {
+        APPROVE: '1',
+        REJECT: '2',
+        REASSIGN: '3',
+        ESCALATE: '4',
+        SUBMIT: '5',
+        RESUBMIT: '6'
+    };
+
+    const APPROVER_TYPE = {
+        ROLE: '1',
+        NAMED_PERSON: '2'
+    };
+
+    const EXECUTION_MODE = {
+        SERIAL: '1',
+        PARALLEL: '2'
+    };
+
+    const TASK_STATUS = {
+        PENDING: '1',
+        APPROVED: '2',
+        REJECTED: '3',
+        REASSIGNED: '4',
+        ESCALATED: '5',
+        CANCELLED: '6'
+    };
+
+    const EXCEPTION_TYPE = {
+        NONE: '',
+        MISSING_PO: '1',
+        VARIANCE_OVER_LIMIT: '2',
+        MISSING_RECEIPT: '3',
+        MULTIPLE: '4'
+    };
+
+    const MATCH_STATUS = {
+        NOT_CHECKED: '1',
+        PASS: '2',
+        FAIL: '3'
+    };
+
+    const APPROVAL_METHOD = {
+        UI: '1',
+        EMAIL: '2',
+        BULK: '3',
+        API: '4'
+    };
+
+    // ===== DECISION RULE FIELDS =====
+    const DECISION_RULE_FIELDS = {
+        CODE: 'custrecord_dr_code',
+        TRAN_TYPE: 'custrecord_dr_tran_type',
+        SUBSIDIARY: 'custrecord_dr_subsidiary',
+        AMT_MIN: 'custrecord_dr_amt_min',
+        AMT_MAX: 'custrecord_dr_amt_max',
+        DEPARTMENT: 'custrecord_dr_department',
+        LOCATION: 'custrecord_dr_location',
+        RISK_MIN: 'custrecord_dr_risk_min',
+        RISK_MAX: 'custrecord_dr_risk_max',
+        EXCEPTION: 'custrecord_dr_exception',
+        PRIORITY: 'custrecord_dr_priority',
+        PATH: 'custrecord_dr_path',
+        EFF_FROM: 'custrecord_dr_eff_from',
+        EFF_TO: 'custrecord_dr_eff_to',
+        ACTIVE: 'custrecord_dr_active',
+        DESCRIPTION: 'custrecord_dr_description'
+    };
+
+    // ===== APPROVAL PATH FIELDS =====
+    const PATH_FIELDS = {
+        CODE: 'custrecord_ap_code',
+        DESCRIPTION: 'custrecord_ap_description',
+        SLA_HOURS: 'custrecord_ap_sla_hours',
+        ACTIVE: 'custrecord_ap_active',
+        STEP_SUMMARY: 'custrecord_ap_step_summary'
+    };
+
+    // ===== PATH STEP FIELDS =====
+    const STEP_FIELDS = {
+        PATH: 'custrecord_ps_path',
+        SEQUENCE: 'custrecord_ps_sequence',
+        NAME: 'custrecord_ps_name',
+        APPROVER_TYPE: 'custrecord_ps_approver_type',
+        ROLE: 'custrecord_ps_role',
+        EMPLOYEE: 'custrecord_ps_employee',
+        MODE: 'custrecord_ps_mode',
+        REQUIRE_COMMENT: 'custrecord_ps_require_comment',
+        SLA_HOURS: 'custrecord_ps_sla_hours',
+        ACTIVE: 'custrecord_ps_active'
+    };
+
+    // ===== GLOBAL CONFIG FIELDS =====
+    const CONFIG_FIELDS = {
+        PRICE_VAR_PCT: 'custrecord_gc_price_var_pct',
+        PRICE_VAR_AMT: 'custrecord_gc_price_var_amt',
+        FX_TOLERANCE_PCT: 'custrecord_gc_fx_tolerance_pct',
+        PO_THRESHOLD: 'custrecord_gc_po_threshold',
+        REMINDER_1_HRS: 'custrecord_gc_reminder_1_hrs',
+        REMINDER_2_HRS: 'custrecord_gc_reminder_2_hrs',
+        ESCALATION_HRS: 'custrecord_gc_escalation_hrs',
+        TOKEN_EXPIRY_HRS: 'custrecord_gc_token_expiry_hrs',
+        MAX_DELEGATION_DAYS: 'custrecord_gc_max_delegation_days',
+        AUTO_APPROVE_ENABLED: 'custrecord_gc_auto_approve_enabled',
+        AUTO_APPROVE_THRESHOLD: 'custrecord_gc_auto_approve_threshold',
+        NEW_VENDOR_DAYS: 'custrecord_gc_new_vendor_days',
+        MIN_VB_ACCT_ANOM: 'custrecord_gc_min_vb_acct_anom',
+        REAPPROVAL_MODE: 'custrecord_gc_reapproval_mode',
+        REAPPROVAL_BODY: 'custrecord_gc_reapproval_body',
+        REAPPROVAL_ITEM: 'custrecord_gc_reapproval_item',
+        REAPPROVAL_EXPENSE: 'custrecord_gc_reapproval_expense',
+        TEAMS_WEBHOOK: 'custrecord_gc_teams_webhook',
+        SLACK_WEBHOOK: 'custrecord_gc_slack_webhook',
+        BULK_LIMIT: 'custrecord_gc_bulk_limit',
+        FALLBACK_PATH: 'custrecord_gc_fallback_path',
+        FALLBACK_APPROVER: 'custrecord_gc_fallback_approver'
+    };
+
+    // ===== TASK FIELDS (unchanged) =====
+    const TASK_FIELDS = {
+        TRAN_TYPE: 'custrecord_p2p_at_tran_type',
+        TRAN_ID: 'custrecord_p2p_at_tran_id',
+        PATH: 'custrecord_p2p_at_path',           // NEW: links to path instead of rule
+        PATH_STEP: 'custrecord_p2p_at_path_step', // NEW: links to path step
+        SEQUENCE: 'custrecord_p2p_at_sequence',
+        APPROVER: 'custrecord_p2p_at_approver',
+        ACTING_APPROVER: 'custrecord_p2p_at_acting_approver',
+        STATUS: 'custrecord_p2p_at_status',
+        CREATED: 'custrecord_p2p_at_created',
+        COMPLETED: 'custrecord_p2p_at_completed',
+        TOKEN: 'custrecord_p2p_at_token',
+        TOKEN_EXPIRY: 'custrecord_p2p_at_token_expiry',
+        REMINDER_COUNT: 'custrecord_p2p_at_reminder_count',
+        ESCALATED: 'custrecord_p2p_at_escalated',
+        // Legacy fields (for backward compat during migration)
+        RULE_LEGACY: 'custrecord_p2p_at_rule',
+        STEP_LEGACY: 'custrecord_p2p_at_step'
+    };
+
+    // ===== HISTORY FIELDS (unchanged) =====
+    const HISTORY_FIELDS = {
+        TRAN_TYPE: 'custrecord_p2p_ah_tran_type',
+        TRAN_ID: 'custrecord_p2p_ah_tran_id',
+        STEP_SEQUENCE: 'custrecord_p2p_ah_step_sequence',
+        APPROVER: 'custrecord_p2p_ah_approver',
+        ACTING_APPROVER: 'custrecord_p2p_ah_acting_approver',
+        ACTION: 'custrecord_p2p_ah_action',
+        TIMESTAMP: 'custrecord_p2p_ah_timestamp',
+        COMMENT: 'custrecord_p2p_ah_comment',
+        IP_ADDRESS: 'custrecord_p2p_ah_ip_address',
+        METHOD: 'custrecord_p2p_ah_method'
+    };
+
+    // ===== DELEGATION FIELDS (unchanged) =====
+    const DELEGATION_FIELDS = {
+        ORIGINAL: 'custrecord_p2p_del_original',
+        DELEGATE: 'custrecord_p2p_del_delegate',
+        START_DATE: 'custrecord_p2p_del_start_date',
+        END_DATE: 'custrecord_p2p_del_end_date',
+        SUBSIDIARY: 'custrecord_p2p_del_subsidiary',
+        TRAN_TYPE: 'custrecord_p2p_del_tran_type',
+        ACTIVE: 'custrecord_p2p_del_active'
+    };
+
+    // ===== TRANSACTION BODY FIELDS =====
+    const BODY_FIELDS = {
+        // Core workflow
+        APPROVAL_STATUS: 'custbody_p2p_approval_status',
+        CURRENT_STEP: 'custbody_p2p_current_step',
+        CURRENT_APPROVER: 'custbody_p2p_current_approver',
+        
+        // New explainability fields
+        MATCHED_RULE: 'custbody_p2p_matched_rule',
+        APPROVAL_PATH: 'custbody_p2p_approval_path',
+        MATCH_REASON: 'custbody_p2p_match_reason',
+        
+        // Matching (VB only)
+        EXCEPTION_TYPE: 'custbody_p2p_exception_type',
+        MATCH_STATUS: 'custbody_p2p_match_status',
+        
+        // AI/Risk
+        AI_RISK_SCORE: 'custbody_p2p_ai_risk_score',
+        AI_RISK_FLAGS: 'custbody_p2p_ai_risk_flags',
+        AI_RISK_SUMMARY: 'custbody_p2p_ai_risk_summary',
+        AI_EXCEPTION_SUGGESTION: 'custbody_p2p_ai_exception_suggestion',
+        
+        // PO revision tracking
+        REVISION_NUMBER: 'custbody_p2p_revision_number',
+        
+        // Legacy (for migration)
+        APPROVAL_RULE_LEGACY: 'custbody_p2p_approval_rule'
+    };
+
+    // ===== DEFAULT CONFIG VALUES =====
+    // Used when Global Config record not found
+    const CONFIG_DEFAULTS = {
+        PRICE_VAR_PCT: 5,
+        PRICE_VAR_AMT: 500,
+        FX_TOLERANCE_PCT: 3,
+        PO_THRESHOLD: 1000,
+        REMINDER_1_HRS: 24,
+        REMINDER_2_HRS: 48,
+        ESCALATION_HRS: 72,
+        TOKEN_EXPIRY_HRS: 72,
+        MAX_DELEGATION_DAYS: 30,
+        BULK_LIMIT: 50,
+        NEW_VENDOR_DAYS: 14,
+        MIN_VB_ACCT_ANOM: 5,
+        REAPPROVAL_MODE: 'material'
+    };
+
+    // ===== SCRIPTS =====
+    const SCRIPTS = {
+        EMAIL_APPROVAL_SL: 'customscript_p2p_email_approval_sl',
+        EMAIL_APPROVAL_DEPLOY: 'customdeploy_p2p_email_approval',
+        BULK_APPROVAL_SL: 'customscript_p2p_bulk_approval_sl',
+        BULK_APPROVAL_DEPLOY: 'customdeploy_p2p_bulk_approval'
+    };
+
+    return {
+        RECORD_TYPES,
+        TRANSACTION_TYPES,
+        TRANSACTION_TYPE_MAP,
+        TRANSACTION_TYPE_REVERSE,
+        APPROVAL_STATUS,
+        APPROVAL_ACTION,
+        APPROVER_TYPE,
+        EXECUTION_MODE,
+        TASK_STATUS,
+        EXCEPTION_TYPE,
+        MATCH_STATUS,
+        APPROVAL_METHOD,
+        DECISION_RULE_FIELDS,
+        PATH_FIELDS,
+        STEP_FIELDS,
+        CONFIG_FIELDS,
+        TASK_FIELDS,
+        HISTORY_FIELDS,
+        DELEGATION_FIELDS,
+        BODY_FIELDS,
+        CONFIG_DEFAULTS,
+        SCRIPTS
+    };
+});

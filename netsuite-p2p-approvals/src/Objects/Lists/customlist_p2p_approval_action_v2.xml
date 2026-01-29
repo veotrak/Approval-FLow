@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- P2P Approval Action List -->
+<customlist scriptid="customlist_p2p_approval_action_v2">
+  <n>P2P Approval Action</n>
+  <description>Actions that can be taken in approval workflow</description>
+  <customvalues>
+    <customvalue scriptid="val_submitted"><value>Submitted</value></customvalue>
+    <customvalue scriptid="val_approved"><value>Approved</value></customvalue>
+    <customvalue scriptid="val_rejected"><value>Rejected</value></customvalue>
+    <customvalue scriptid="val_delegated"><value>Delegated</value></customvalue>
+    <customvalue scriptid="val_escalated"><value>Escalated</value></customvalue>
+    <customvalue scriptid="val_recalled"><value>Recalled</value></customvalue>
+    <customvalue scriptid="val_reassigned"><value>Reassigned</value></customvalue>
+    <customvalue scriptid="val_comment"><value>Comment Added</value></customvalue>
+    <customvalue scriptid="val_exc_override"><value>Exception Override</value></customvalue>
+    <customvalue scriptid="val_resubmitted"><value>Resubmitted</value></customvalue>
+  </customvalues>
+</customlist>

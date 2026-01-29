@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<transactionbodycustomfield scriptid="custbody_p2p_match_status">
-  <label>P2P Match Status</label>
-  <fieldtype>SELECT</fieldtype>
-  <selectrecordtype>customlist_p2p_match_status</selectrecordtype>
-  <appliestovendorbill>T</appliestovendorbill>
-</transactionbodycustomfield>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- P2P Task Status List -->
+<customlist scriptid="customlist_p2p_task_status_v2">
+  <n>P2P Task Status</n>
+  <description>Status values for approval tasks</description>
+  <customvalues>
+    <customvalue scriptid="val_pending"><value>Pending</value></customvalue>
+    <customvalue scriptid="val_approved"><value>Approved</value></customvalue>
+    <customvalue scriptid="val_rejected"><value>Rejected</value></customvalue>
+    <customvalue scriptid="val_delegated"><value>Delegated</value></customvalue>
+    <customvalue scriptid="val_escalated"><value>Escalated</value></customvalue>
+    <customvalue scriptid="val_cancelled"><value>Cancelled</value></customvalue>
+    <customvalue scriptid="val_expired"><value>Expired</value></customvalue>
+  </customvalues>
+</customlist>

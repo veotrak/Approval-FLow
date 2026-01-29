@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<transactionbodycustomfield scriptid="custbody_p2p_approval_rule">
-  <label>P2P Approval Rule</label>
-  <fieldtype>SELECT</fieldtype>
-  <selectrecordtype>customrecord_p2p_approval_rule</selectrecordtype>
-  <appliestopurchaseorder>T</appliestopurchaseorder>
-  <appliestovendorbill>T</appliestovendorbill>
-</transactionbodycustomfield>

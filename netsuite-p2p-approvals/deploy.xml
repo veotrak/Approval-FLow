@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<deploy>
-  <title>NetSuite P2P Approvals</title>
-  <description>Deploys custom records, fields, scripts, and searches.</description>
-  <applicationid>com.p2p.approvals</applicationid>
-  <version>1.0.0</version>
-</deploy>

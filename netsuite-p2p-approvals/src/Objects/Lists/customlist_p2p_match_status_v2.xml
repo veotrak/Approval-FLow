@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- P2P Match Status List -->
+<customlist scriptid="customlist_p2p_match_status_v2">
+  <n>P2P Match Status</n>
+  <description>3-way matching status values for Vendor Bills</description>
+  <customvalues>
+    <customvalue scriptid="val_not_matched"><value>Not Matched</value></customvalue>
+    <customvalue scriptid="val_matched"><value>Matched</value></customvalue>
+    <customvalue scriptid="val_partial"><value>Partial Match</value></customvalue>
+    <customvalue scriptid="val_price_var"><value>Price Variance</value></customvalue>
+    <customvalue scriptid="val_qty_var"><value>Quantity Variance</value></customvalue>
+    <customvalue scriptid="val_po_not_found"><value>PO Not Found</value></customvalue>
+    <customvalue scriptid="val_receipt_missing"><value>Receipt Missing</value></customvalue>
+    <customvalue scriptid="val_exc_overridden"><value>Exception Overridden</value></customvalue>
+  </customvalues>
+</customlist>

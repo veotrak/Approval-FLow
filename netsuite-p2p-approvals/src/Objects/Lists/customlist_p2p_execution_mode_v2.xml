@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- P2P Execution Mode List -->
+<customlist scriptid="customlist_p2p_execution_mode_v2">
+  <n>P2P Execution Mode</n>
+  <description>Execution modes for approval steps</description>
+  <customvalues>
+    <customvalue scriptid="val_serial"><value>Serial</value></customvalue>
+    <customvalue scriptid="val_parallel"><value>Parallel</value></customvalue>
+    <customvalue scriptid="val_parallel_any"><value>Parallel Any</value></customvalue>
+  </customvalues>
+</customlist>
