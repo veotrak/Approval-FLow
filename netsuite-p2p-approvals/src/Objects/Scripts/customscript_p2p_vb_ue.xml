@@ -2,6 +2,28 @@
 <usereventscript scriptid="customscript_p2p_vb_ue">
   <name>P2P VB User Event</name>
   <scriptfile>SuiteScripts/p2p_approvals/user_event/p2p_vb_ue.js</scriptfile>
+  <scriptcustomfields>
+    <scriptcustomfield scriptid="custscript_p2p_teams_webhook">
+      <label>Teams Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_slack_webhook">
+      <label>Slack Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_auto_approve_threshold">
+      <label>Auto-Approve Risk Score Threshold</label>
+      <fieldtype>DECIMALNUMBER</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_new_vendor_days">
+      <label>New Vendor Days</label>
+      <fieldtype>INTEGER</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_min_vendor_bills_account_anom">
+      <label>Min Vendor Bills for Account Anomaly</label>
+      <fieldtype>INTEGER</fieldtype>
+    </scriptcustomfield>
+  </scriptcustomfields>
   <scriptdeployments>
     <scriptdeployment scriptid="customdeploy_p2p_vb_ue">
       <status>RELEASED</status>

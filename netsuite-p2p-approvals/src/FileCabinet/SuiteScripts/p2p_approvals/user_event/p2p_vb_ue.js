@@ -90,9 +90,15 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
             const exceptionFlags = matchResult.exceptions && matchResult.exceptions.length
                 ? 'Matching Exceptions: ' + matchResult.exceptions.join(',')
                 : '';
+            const anomalyFlags = matchResult.anomalies && matchResult.anomalies.length
+                ? 'Anomalies: ' + matchResult.anomalies.join(', ')
+                : '';
             const mergedFlags = exceptionFlags
                 ? (existingFlags ? existingFlags + ' | ' + exceptionFlags : exceptionFlags)
                 : existingFlags;
+            const mergedWithAnomalies = anomalyFlags
+                ? (mergedFlags ? mergedFlags + ' | ' + anomalyFlags : anomalyFlags)
+                : mergedFlags;
 
             record.submitFields({
                 type: 'vendorbill',
@@ -100,7 +106,7 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
                 values: {
                     [constants.BODY_FIELDS.MATCH_STATUS]: matchResult.status,
                     [constants.BODY_FIELDS.EXCEPTION_TYPE]: matchResult.primaryException || '',
-                    [constants.BODY_FIELDS.AI_RISK_FLAGS]: mergedFlags
+                    [constants.BODY_FIELDS.AI_RISK_FLAGS]: mergedWithAnomalies
                 }
             });
 
@@ -118,7 +124,9 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
                     department: recordObj.getValue('department'),
                     location: recordObj.getValue('location'),
                     amount: Number(recordObj.getValue('total')) || 0,
-                    currency: recordObj.getValue('currency')
+                    currency: recordObj.getValue('currency'),
+                    riskScore: recordObj.getValue(constants.BODY_FIELDS.AI_RISK_SCORE),
+                    riskFlags: recordObj.getValue(constants.BODY_FIELDS.AI_RISK_FLAGS)
                 },
                 exceptionType: matchResult.primaryException
             });

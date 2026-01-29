@@ -2,7 +2,7 @@
  * @NApiVersion 2.1
  * @NModuleScope Public
  */
-define(['N/record', '../constants/p2p_constants'], function(record, constants) {
+define(['N/record', 'N/search', 'N/runtime', '../constants/p2p_constants'], function(record, search, runtime, constants) {
     'use strict';
 
     function performMatchValidation(params) {
@@ -34,10 +34,17 @@ define(['N/record', '../constants/p2p_constants'], function(record, constants) {
                 ? constants.EXCEPTION_TYPE.MULTIPLE
                 : (exceptions[0] || '');
 
+            const anomalies = detectAnomalies(vbRecord, {
+                poCheck: poCheck,
+                receiptCheck: receiptCheck,
+                varianceCheck: varianceCheck
+            });
+
             return {
                 status: status,
                 exceptions: exceptions,
                 primaryException: primaryException,
+                anomalies: anomalies,
                 details: {
                     poCheck: poCheck,
                     receiptCheck: receiptCheck,
@@ -156,10 +163,195 @@ define(['N/record', '../constants/p2p_constants'], function(record, constants) {
         };
     }
 
+    function detectAnomalies(vbRecord, details) {
+        const anomalies = [];
+        try {
+            const vendorId = vbRecord.getValue('entity');
+            const isNew = vendorId && isNewVendor(vendorId, vbRecord.id);
+            if (isNew) {
+                anomalies.push('New vendor');
+            }
+            if (details && details.varianceCheck && !details.varianceCheck.pass) {
+                anomalies.push('Price variance over limit');
+            }
+            if (!isNew && hasSufficientVendorHistory(vendorId, vbRecord.id)) {
+                const newAccounts = findNewAccountsForVendor(vendorId, vbRecord);
+                if (newAccounts.length) {
+                    anomalies.push('New account for vendor: ' + newAccounts.join(', '));
+                }
+            }
+        } catch (error) {
+            log.error('detectAnomalies error', error);
+        }
+        return anomalies;
+    }
+
+    function isNewVendor(vendorId, currentBillId) {
+        if (!vendorId) {
+            return false;
+        }
+        if (!isVendorCreatedRecently(vendorId, getConfigNumber(
+            constants.SCRIPT_PARAMS.NEW_VENDOR_DAYS,
+            constants.CONFIG.NEW_VENDOR_DAYS
+        ))) {
+            return false;
+        }
+        return !hasPriorVendorBills(vendorId, currentBillId);
+    }
+
+    function hasPriorVendorBills(vendorId, currentBillId) {
+        const vendorSearch = search.create({
+            type: 'transaction',
+            filters: [
+                ['type', 'anyof', 'VendBill'],
+                'and',
+                ['entity', 'anyof', vendorId],
+                'and',
+                ['mainline', 'is', 'T'],
+                'and',
+                ['internalid', 'noneof', currentBillId]
+            ],
+            columns: ['internalid']
+        });
+        const result = vendorSearch.run().getRange({ start: 0, end: 1 });
+        return !!(result && result.length);
+    }
+
+    function isVendorCreatedRecently(vendorId, days) {
+        try {
+            const vendor = record.load({ type: 'vendor', id: vendorId });
+            const created = vendor.getValue('datecreated');
+            if (!created) {
+                return false;
+            }
+            const createdDate = created instanceof Date ? created : new Date(created);
+            if (isNaN(createdDate.getTime())) {
+                return false;
+            }
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - (days || 0));
+            return createdDate >= cutoff;
+        } catch (error) {
+            log.error('isVendorCreatedRecently error', error);
+            return false;
+        }
+    }
+
+    function hasSufficientVendorHistory(vendorId, currentBillId) {
+        if (!vendorId) {
+            return false;
+        }
+        try {
+            const historySearch = search.create({
+                type: 'transaction',
+                filters: [
+                    ['type', 'anyof', 'VendBill'],
+                    'and',
+                    ['entity', 'anyof', vendorId],
+                    'and',
+                    ['mainline', 'is', 'T'],
+                    'and',
+                    ['internalid', 'noneof', currentBillId]
+                ],
+                columns: ['internalid']
+            });
+            const count = historySearch.runPaged().count || 0;
+            const minCount = getConfigNumber(
+                constants.SCRIPT_PARAMS.MIN_VENDOR_BILLS_FOR_ACCOUNT_ANOMALY,
+                constants.CONFIG.MIN_VENDOR_BILLS_FOR_ACCOUNT_ANOMALY
+            );
+            return count >= minCount;
+        } catch (error) {
+            log.error('hasSufficientVendorHistory error', error);
+            return false;
+        }
+    }
+
+    function findNewAccountsForVendor(vendorId, vbRecord) {
+        if (!vendorId) {
+            return [];
+        }
+        const accounts = getExpenseAccounts(vbRecord);
+        const newAccounts = [];
+        for (let i = 0; i < accounts.length; i += 1) {
+            const accountId = accounts[i].id;
+            const accountName = accounts[i].name || accounts[i].id;
+            if (isNewAccountForVendor(vendorId, accountId, vbRecord.id)) {
+                newAccounts.push(accountName);
+            }
+            if (newAccounts.length >= 3) {
+                break;
+            }
+        }
+        return newAccounts;
+    }
+
+    function getExpenseAccounts(vbRecord) {
+        const accounts = [];
+        const seen = {};
+        const lineCount = vbRecord.getLineCount({ sublistId: 'expense' }) || 0;
+        for (let i = 0; i < lineCount; i += 1) {
+            const accountId = vbRecord.getSublistValue({ sublistId: 'expense', fieldId: 'account', line: i });
+            if (!accountId || seen[accountId]) {
+                continue;
+            }
+            seen[accountId] = true;
+            accounts.push({
+                id: accountId,
+                name: vbRecord.getSublistText({ sublistId: 'expense', fieldId: 'account', line: i }) || accountId
+            });
+            if (accounts.length >= 5) {
+                break;
+            }
+        }
+        return accounts;
+    }
+
+    function isNewAccountForVendor(vendorId, accountId, currentBillId) {
+        try {
+            const accountSearch = search.create({
+                type: 'transaction',
+                filters: [
+                    ['type', 'anyof', 'VendBill'],
+                    'and',
+                    ['entity', 'anyof', vendorId],
+                    'and',
+                    ['account', 'anyof', accountId],
+                    'and',
+                    ['mainline', 'is', 'F'],
+                    'and',
+                    ['internalid', 'noneof', currentBillId]
+                ],
+                columns: ['internalid']
+            });
+            const result = accountSearch.run().getRange({ start: 0, end: 1 });
+            return !result || !result.length;
+        } catch (error) {
+            log.error('isNewAccountForVendor error', error);
+            return false;
+        }
+    }
+
+    function getConfigNumber(paramId, fallback) {
+        try {
+            const script = runtime.getCurrentScript();
+            if (!script) {
+                return fallback;
+            }
+            const raw = script.getParameter({ name: paramId });
+            const parsed = Number(raw);
+            return isNaN(parsed) ? fallback : parsed;
+        } catch (error) {
+            log.error('getConfigNumber error', error);
+            return fallback;
+        }
+    }
+
     return {
         performMatchValidation: performMatchValidation,
         checkPOLink: checkPOLink,
         checkReceiptStatus: checkReceiptStatus,
-        checkVariance: checkVariance
+        checkVariance: checkVariance,
+        detectAnomalies: detectAnomalies
     };
 });

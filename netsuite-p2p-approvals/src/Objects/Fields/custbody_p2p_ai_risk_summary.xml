@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactionbodycustomfield scriptid="custbody_p2p_ai_risk_summary">
+  <label>P2P AI Risk Summary</label>
+  <fieldtype>TEXTAREA</fieldtype>
+  <appliestopurchaseorder>T</appliestopurchaseorder>
+  <appliestovendorbill>T</appliestovendorbill>
+</transactionbodycustomfield>

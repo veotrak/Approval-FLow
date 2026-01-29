@@ -2,6 +2,16 @@
 <scheduledscript scriptid="customscript_p2p_escalation_ss">
   <name>P2P Escalation Scheduled Script</name>
   <scriptfile>SuiteScripts/p2p_approvals/scheduled/p2p_escalation_ss.js</scriptfile>
+  <scriptcustomfields>
+    <scriptcustomfield scriptid="custscript_p2p_teams_webhook">
+      <label>Teams Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_slack_webhook">
+      <label>Slack Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+  </scriptcustomfields>
   <scriptdeployments>
     <scriptdeployment scriptid="customdeploy_p2p_escalation">
       <status>RELEASED</status>

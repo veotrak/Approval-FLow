@@ -2,6 +2,16 @@
 <suitelet scriptid="customscript_p2p_bulk_approval_sl">
   <name>P2P Bulk Approval Suitelet</name>
   <scriptfile>SuiteScripts/p2p_approvals/suitelet/p2p_bulk_approval_sl.js</scriptfile>
+  <scriptcustomfields>
+    <scriptcustomfield scriptid="custscript_p2p_teams_webhook">
+      <label>Teams Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_slack_webhook">
+      <label>Slack Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+  </scriptcustomfields>
   <scriptdeployments>
     <scriptdeployment scriptid="customdeploy_p2p_bulk_approval">
       <status>RELEASED</status>

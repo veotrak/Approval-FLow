@@ -94,6 +94,7 @@ define([], function() {
         DEPT_GROUP: 'custrecord_p2p_ar_dept_group',
         LOC_GROUP: 'custrecord_p2p_ar_loc_group',
         PRIORITY: 'custrecord_p2p_ar_priority',
+        MIN_RISK_SCORE: 'custrecord_p2p_ar_min_risk_score',
         EFFECTIVE_FROM: 'custrecord_p2p_ar_effective_from',
         EFFECTIVE_TO: 'custrecord_p2p_ar_effective_to',
         ACTIVE: 'custrecord_p2p_ar_active',
@@ -161,7 +162,9 @@ define([], function() {
         EXCEPTION_TYPE: 'custbody_p2p_exception_type',
         MATCH_STATUS: 'custbody_p2p_match_status',
         AI_RISK_SCORE: 'custbody_p2p_ai_risk_score',
-        AI_RISK_FLAGS: 'custbody_p2p_ai_risk_flags'
+        AI_RISK_FLAGS: 'custbody_p2p_ai_risk_flags',
+        AI_RISK_SUMMARY: 'custbody_p2p_ai_risk_summary',
+        AI_EXCEPTION_SUGGESTION: 'custbody_p2p_ai_exception_suggestion'
     };
 
     const CONFIG = {
@@ -173,14 +176,23 @@ define([], function() {
         PO_REQUIRED_THRESHOLD: 1000,
         MAX_DELEGATION_DAYS: 30,
         FALLBACK_APPROVER_ROLE: 3,
-        BULK_APPROVAL_LIMIT: 50
+        BULK_APPROVAL_LIMIT: 50,
+        NEW_VENDOR_DAYS: 14,
+        MIN_VENDOR_BILLS_FOR_ACCOUNT_ANOMALY: 5
     };
 
     const SPECIFICITY_SCORES = {
         DEPARTMENT_EXACT: 4,
         DEPARTMENT_GROUP: 3,
         LOCATION_EXACT: 2,
-        LOCATION_GROUP: 1
+        LOCATION_GROUP: 1,
+        RISK_THRESHOLD: 1
+    };
+
+    const SCRIPT_PARAMS = {
+        AUTO_APPROVE_THRESHOLD: 'custscript_p2p_auto_approve_threshold',
+        NEW_VENDOR_DAYS: 'custscript_p2p_new_vendor_days',
+        MIN_VENDOR_BILLS_FOR_ACCOUNT_ANOMALY: 'custscript_p2p_min_vendor_bills_account_anom'
     };
 
     const SCRIPTS = {
@@ -195,6 +207,6 @@ define([], function() {
         APPROVAL_STATUS, APPROVAL_ACTION, APPROVER_TYPE, EXECUTION_MODE,
         TASK_STATUS, EXCEPTION_TYPE, MATCH_STATUS, APPROVAL_METHOD,
         RULE_FIELDS, STEP_FIELDS, DELEGATION_FIELDS, TASK_FIELDS,
-        HISTORY_FIELDS, BODY_FIELDS, CONFIG, SPECIFICITY_SCORES, SCRIPTS
+        HISTORY_FIELDS, BODY_FIELDS, CONFIG, SPECIFICITY_SCORES, SCRIPTS, SCRIPT_PARAMS
     };
 });

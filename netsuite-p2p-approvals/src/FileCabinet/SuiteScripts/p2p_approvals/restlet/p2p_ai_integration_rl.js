@@ -71,7 +71,9 @@ define(['N/record', 'N/runtime', 'N/search',
             department: tran.getValue('department'),
             location: tran.getValue('location'),
             amount: Number(tran.getValue('total')) || 0,
-            currency: tran.getValue('currency')
+            currency: tran.getValue('currency'),
+            riskScore: tran.getValue(constants.BODY_FIELDS.AI_RISK_SCORE),
+            riskFlags: tran.getValue(constants.BODY_FIELDS.AI_RISK_FLAGS)
         };
 
         const exceptionType = recordType === 'vendorbill'
@@ -158,7 +160,7 @@ define(['N/record', 'N/runtime', 'N/search',
         }
 
         if (action === 'score') {
-            return false;
+            return isAllowedRole(roleId);
         }
 
         return false;
@@ -246,16 +248,22 @@ define(['N/record', 'N/runtime', 'N/search',
         const exceptionFlags = matchResult.exceptions && matchResult.exceptions.length
             ? 'Matching Exceptions: ' + matchResult.exceptions.join(',')
             : '';
+        const anomalyFlags = matchResult.anomalies && matchResult.anomalies.length
+            ? 'Anomalies: ' + matchResult.anomalies.join(', ')
+            : '';
         const mergedFlags = exceptionFlags
             ? (existingFlags ? existingFlags + ' | ' + exceptionFlags : exceptionFlags)
             : existingFlags;
+        const mergedWithAnomalies = anomalyFlags
+            ? (mergedFlags ? mergedFlags + ' | ' + anomalyFlags : anomalyFlags)
+            : mergedFlags;
         record.submitFields({
             type: 'vendorbill',
             id: recordId,
             values: {
                 [constants.BODY_FIELDS.MATCH_STATUS]: matchResult.status,
                 [constants.BODY_FIELDS.EXCEPTION_TYPE]: matchResult.primaryException || '',
-                [constants.BODY_FIELDS.AI_RISK_FLAGS]: mergedFlags
+                [constants.BODY_FIELDS.AI_RISK_FLAGS]: mergedWithAnomalies
             }
         });
         return { success: true, result: matchResult };
@@ -264,12 +272,16 @@ define(['N/record', 'N/runtime', 'N/search',
     function scoreRisk(recordType, recordId, payload) {
         const riskScore = payload.riskScore || 0;
         const riskFlags = payload.riskFlags || '';
+        const riskSummary = payload.riskSummary || '';
+        const exceptionSuggestion = payload.exceptionSuggestion || '';
         record.submitFields({
             type: recordType,
             id: recordId,
             values: {
                 [constants.BODY_FIELDS.AI_RISK_SCORE]: riskScore,
-                [constants.BODY_FIELDS.AI_RISK_FLAGS]: riskFlags
+                [constants.BODY_FIELDS.AI_RISK_FLAGS]: riskFlags,
+                [constants.BODY_FIELDS.AI_RISK_SUMMARY]: riskSummary,
+                [constants.BODY_FIELDS.AI_EXCEPTION_SUGGESTION]: exceptionSuggestion
             }
         });
         return { success: true, riskScore: riskScore };

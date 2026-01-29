@@ -7,6 +7,14 @@
       <label>Task IDs JSON</label>
       <fieldtype>TEXTAREA</fieldtype>
     </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_teams_webhook">
+      <label>Teams Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_slack_webhook">
+      <label>Slack Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
     <scriptcustomfield scriptid="custscript_p2p_bulk_limit">
       <label>Bulk Limit</label>
       <fieldtype>INTEGER</fieldtype>

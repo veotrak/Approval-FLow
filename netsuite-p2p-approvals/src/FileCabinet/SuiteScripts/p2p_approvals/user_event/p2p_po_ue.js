@@ -110,7 +110,9 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
                     department: recordObj.getValue('department'),
                     location: recordObj.getValue('location'),
                     amount: Number(recordObj.getValue('total')) || 0,
-                    currency: recordObj.getValue('currency')
+                    currency: recordObj.getValue('currency'),
+                    riskScore: recordObj.getValue(constants.BODY_FIELDS.AI_RISK_SCORE),
+                    riskFlags: recordObj.getValue(constants.BODY_FIELDS.AI_RISK_FLAGS)
                 }
             });
         } catch (error) {

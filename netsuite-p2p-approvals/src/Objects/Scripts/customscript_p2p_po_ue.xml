@@ -2,6 +2,20 @@
 <usereventscript scriptid="customscript_p2p_po_ue">
   <name>P2P PO User Event</name>
   <scriptfile>SuiteScripts/p2p_approvals/user_event/p2p_po_ue.js</scriptfile>
+  <scriptcustomfields>
+    <scriptcustomfield scriptid="custscript_p2p_teams_webhook">
+      <label>Teams Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_slack_webhook">
+      <label>Slack Webhook URL</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_auto_approve_threshold">
+      <label>Auto-Approve Risk Score Threshold</label>
+      <fieldtype>DECIMALNUMBER</fieldtype>
+    </scriptcustomfield>
+  </scriptcustomfields>
   <scriptdeployments>
     <scriptdeployment scriptid="customdeploy_p2p_po_ue">
       <status>RELEASED</status>

@@ -20,6 +20,37 @@ define([
                 throw new Error('Missing routing parameters.');
             }
 
+            const riskScore = normalizeRiskScore(params.transactionData.riskScore);
+            const riskFlags = params.transactionData.riskFlags || '';
+            const autoApproveThreshold = getAutoApproveThreshold();
+            if (shouldAutoApprove(riskScore, autoApproveThreshold, params.exceptionType, riskFlags, params.recordType, params.transactionData.transactionType)) {
+                record.submitFields({
+                    type: params.recordType,
+                    id: params.recordId,
+                    values: {
+                        [constants.BODY_FIELDS.APPROVAL_STATUS]: constants.APPROVAL_STATUS.APPROVED,
+                        [constants.BODY_FIELDS.CURRENT_STEP]: '',
+                        [constants.BODY_FIELDS.CURRENT_APPROVER]: '',
+                        [constants.BODY_FIELDS.APPROVAL_RULE]: ''
+                    }
+                });
+                historyLogger.logAction({
+                    transactionType: params.transactionData.transactionType,
+                    transactionId: params.recordId,
+                    stepSequence: 0,
+                    approver: runtime.getCurrentUser().id,
+                    action: constants.APPROVAL_ACTION.APPROVE,
+                    comment: 'Auto-approved (low risk).',
+                    method: constants.APPROVAL_METHOD.API
+                });
+                notificationManager.sendApprovedNotification({
+                    recordType: params.recordType,
+                    recordId: params.recordId,
+                    requestorId: getRequestorId(params.transactionData.transactionType, params.recordId)
+                });
+                return { success: true, autoApproved: true };
+            }
+
             const rule = findMatchingRule({
                 transactionType: params.transactionData.transactionType,
                 subsidiary: params.transactionData.subsidiary,
@@ -27,6 +58,7 @@ define([
                 location: params.transactionData.location,
                 amount: params.transactionData.amount,
                 currency: params.transactionData.currency,
+                riskScore: riskScore,
                 exceptionType: params.exceptionType
             });
 
@@ -106,6 +138,16 @@ define([
                 ]
             ];
 
+            if (criteria.riskScore !== null && criteria.riskScore !== undefined) {
+                baseFilters.push('and', [
+                    [constants.RULE_FIELDS.MIN_RISK_SCORE, 'isempty', ''],
+                    'or',
+                    [constants.RULE_FIELDS.MIN_RISK_SCORE, 'lessthanorequalto', criteria.riskScore]
+                ]);
+            } else {
+                baseFilters.push('and', [constants.RULE_FIELDS.MIN_RISK_SCORE, 'isempty', '']);
+            }
+
             if (criteria.currency) {
                 baseFilters.push('and', [
                     [constants.RULE_FIELDS.CURRENCY, 'isempty', ''],
@@ -140,6 +182,7 @@ define([
                     constants.RULE_FIELDS.LOCATION,
                     constants.RULE_FIELDS.DEPT_GROUP,
                     constants.RULE_FIELDS.LOC_GROUP,
+                    constants.RULE_FIELDS.MIN_RISK_SCORE,
                     constants.RULE_FIELDS.PRIORITY,
                     constants.RULE_FIELDS.EXC_NO_PO,
                     constants.RULE_FIELDS.EXC_VARIANCE,
@@ -160,6 +203,7 @@ define([
                 const loc = result.getValue(constants.RULE_FIELDS.LOCATION);
                 const deptGroup = result.getValue(constants.RULE_FIELDS.DEPT_GROUP);
                 const locGroup = result.getValue(constants.RULE_FIELDS.LOC_GROUP);
+                const minRiskScore = result.getValue(constants.RULE_FIELDS.MIN_RISK_SCORE);
 
                 if (criteria.currency && currency && currency !== criteria.currency) {
                     return true;
@@ -200,8 +244,9 @@ define([
                     dept: dept,
                     loc: loc,
                     deptGroup: deptGroup,
-                    locGroup: locGroup
-                }, criteria.department, criteria.location, deptGroups, locGroups);
+                    locGroup: locGroup,
+                    minRiskScore: minRiskScore
+                }, criteria.department, criteria.location, deptGroups, locGroups, criteria.riskScore);
                 const priority = parseInt(result.getValue(constants.RULE_FIELDS.PRIORITY), 10) || 0;
 
                 if (score > bestScore || (score === bestScore && priority > bestPriority)) {
@@ -222,7 +267,7 @@ define([
         }
     }
 
-    function calculateSpecificity(rule, dept, loc, deptGroups, locGroups) {
+    function calculateSpecificity(rule, dept, loc, deptGroups, locGroups, riskScore) {
         let score = 0;
         if (rule.dept && dept && rule.dept === dept) {
             score += constants.SPECIFICITY_SCORES.DEPARTMENT_EXACT;
@@ -236,7 +281,59 @@ define([
             score += constants.SPECIFICITY_SCORES.LOCATION_GROUP;
         }
 
+        if (rule.minRiskScore && riskScore !== null && riskScore !== undefined) {
+            const minRisk = parseFloat(rule.minRiskScore);
+            if (!isNaN(minRisk) && riskScore >= minRisk) {
+                score += constants.SPECIFICITY_SCORES.RISK_THRESHOLD;
+            }
+        }
+
         return score;
+    }
+
+    function normalizeRiskScore(value) {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+        const parsed = Number(value);
+        return isNaN(parsed) ? null : parsed;
+    }
+
+    function getAutoApproveThreshold() {
+        try {
+            const script = runtime.getCurrentScript();
+            if (!script) {
+                return null;
+            }
+            const raw = script.getParameter({ name: constants.SCRIPT_PARAMS.AUTO_APPROVE_THRESHOLD });
+            const parsed = Number(raw);
+            return isNaN(parsed) ? null : parsed;
+        } catch (error) {
+            log.error('getAutoApproveThreshold error', error);
+            return null;
+        }
+    }
+
+    function shouldAutoApprove(riskScore, threshold, exceptionType, riskFlags, recordType, tranType) {
+        if (threshold === null || threshold === undefined) {
+            return false;
+        }
+        if (riskScore === null || riskScore === undefined) {
+            return false;
+        }
+        if (exceptionType) {
+            return false;
+        }
+        if (riskFlags && String(riskFlags).trim()) {
+            return false;
+        }
+        if (recordType && recordType !== 'purchaseorder') {
+            return false;
+        }
+        if (tranType && tranType !== constants.TRANSACTION_TYPES.PURCHASE_ORDER) {
+            return false;
+        }
+        return riskScore <= threshold;
     }
 
     function processApproval(params) {
