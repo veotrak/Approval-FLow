@@ -81,11 +81,19 @@ define(['N/ui/serverWidget', 'N/search', 'N/runtime',
 
     function processBulkApprovals(context) {
         const request = context.request;
-        const action = request.parameters.custpage_action || 'approve';
+        const action = normalizeAction(request.parameters.custpage_action);
         const comment = request.parameters.custpage_comment || '';
+        const trimmedComment = String(comment).trim();
         const lineCount = request.getLineCount({ group: 'custpage_tasks' }) || 0;
         const bulkLimit = constants.CONFIG.BULK_APPROVAL_LIMIT || 50;
         const governanceThreshold = 200;
+
+        if (!action) {
+            return showResultPage(context, 'Invalid action selected.');
+        }
+        if (action === 'reject' && !trimmedComment) {
+            return showResultPage(context, 'Comment required for rejection.');
+        }
 
         let selectedCount = 0;
         for (let i = 0; i < lineCount; i += 1) {
@@ -100,14 +108,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/runtime',
         }
 
         if (selectedCount > bulkLimit) {
-            const form = serverWidget.createForm({ title: 'Bulk Approval Results' });
-            form.addField({
-                id: 'custpage_summary',
-                type: serverWidget.FieldType.INLINEHTML,
-                label: ' '
-            }).defaultValue = '<p>Too many selections. Limit is ' + bulkLimit + '.</p>';
-            context.response.writePage(form);
-            return;
+            return showResultPage(context, 'Too many selections. Limit is ' + bulkLimit + '.');
         }
 
         let processed = 0;
@@ -133,21 +134,33 @@ define(['N/ui/serverWidget', 'N/search', 'N/runtime',
             approvalEngine.processApproval({
                 taskId: taskId,
                 action: action === 'approve' ? constants.APPROVAL_ACTION.APPROVE : constants.APPROVAL_ACTION.REJECT,
-                comment: comment,
+                comment: trimmedComment,
                 method: constants.APPROVAL_METHOD.BULK
             });
             processed += 1;
         }
 
-        const form = serverWidget.createForm({ title: 'Bulk Approval Results' });
         const warning = processed < selectedCount
             ? ' Processing stopped early due to governance limits.'
             : '';
+        return showResultPage(context, 'Processed ' + processed + ' task(s).' + warning);
+    }
+
+    function normalizeAction(value) {
+        const action = (value || '').toLowerCase();
+        if (action === 'approve' || action === 'reject') {
+            return action;
+        }
+        return null;
+    }
+
+    function showResultPage(context, message) {
+        const form = serverWidget.createForm({ title: 'Bulk Approval Results' });
         form.addField({
             id: 'custpage_summary',
             type: serverWidget.FieldType.INLINEHTML,
             label: ' '
-        }).defaultValue = '<p>Processed ' + processed + ' task(s).' + warning + '</p>';
+        }).defaultValue = '<p>' + message + '</p>';
         context.response.writePage(form);
     }
 

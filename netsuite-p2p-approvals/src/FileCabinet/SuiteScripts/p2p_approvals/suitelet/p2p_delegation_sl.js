@@ -2,8 +2,8 @@
  * @NApiVersion 2.1
  * @NScriptType Suitelet
  */
-define(['N/ui/serverWidget', 'N/runtime', '../lib/p2p_delegation_manager', '../constants/p2p_constants'], function(
-    serverWidget, runtime, delegationManager, constants
+define(['N/ui/serverWidget', 'N/runtime', 'N/format', '../lib/p2p_delegation_manager', '../constants/p2p_constants'], function(
+    serverWidget, runtime, format, delegationManager, constants
 ) {
     'use strict';
 
@@ -67,15 +67,25 @@ define(['N/ui/serverWidget', 'N/runtime', '../lib/p2p_delegation_manager', '../c
 
         let message = '';
         try {
-            const id = delegationManager.createDelegation({
-                originalId: currentUser,
+            const validationError = validateDelegationInput({
+                currentUser: currentUser,
                 delegateId: delegateId,
                 startDate: startDate,
-                endDate: endDate,
-                subsidiary: subsidiary || null,
-                transactionType: tranType || null
+                endDate: endDate
             });
-            message = 'Delegation created (ID: ' + id + ').';
+            if (validationError) {
+                message = validationError;
+            } else {
+                const id = delegationManager.createDelegation({
+                    originalId: currentUser,
+                    delegateId: delegateId,
+                    startDate: startDate,
+                    endDate: endDate,
+                    subsidiary: subsidiary || null,
+                    transactionType: tranType || null
+                });
+                message = 'Delegation created (ID: ' + id + ').';
+            }
         } catch (error) {
             message = 'Unable to create delegation: ' + error.message;
         }
@@ -87,6 +97,28 @@ define(['N/ui/serverWidget', 'N/runtime', '../lib/p2p_delegation_manager', '../c
             label: ' '
         }).defaultValue = '<p>' + message + '</p>';
         context.response.writePage(form);
+    }
+
+    function validateDelegationInput(params) {
+        if (!params.delegateId) {
+            return 'Delegate is required.';
+        }
+        if (String(params.delegateId) === String(params.currentUser)) {
+            return 'You cannot delegate to yourself.';
+        }
+        if (!params.startDate || !params.endDate) {
+            return 'Start and end date are required.';
+        }
+        try {
+            const start = format.parse({ value: params.startDate, type: format.Type.DATE });
+            const end = format.parse({ value: params.endDate, type: format.Type.DATE });
+            if (end < start) {
+                return 'End date must be on or after start date.';
+            }
+        } catch (error) {
+            return 'Invalid start or end date.';
+        }
+        return '';
     }
 
     return { onRequest: onRequest };
