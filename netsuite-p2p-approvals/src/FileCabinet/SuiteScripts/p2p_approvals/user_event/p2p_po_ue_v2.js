@@ -24,32 +24,23 @@ define([
 
             form.clientScriptModulePath = '../client/p2p_po_cs_v2.js';
 
-            // Add approval history display
-            const historyHtml = historyLogger.buildHistoryHtml(
-                constants.TRANSACTION_TYPES.PURCHASE_ORDER,
-                rec.id
-            );
-
-            const historyField = form.addField({
-                id: 'custpage_p2p_history',
-                type: serverWidget.FieldType.INLINEHTML,
-                label: 'P2P Approval History'
-            });
-            historyField.defaultValue = historyHtml;
-
-            // Add match reason display (explainability)
-            const matchReason = rec.getValue(BF.MATCH_REASON);
-            if (matchReason && context.type === context.UserEventType.VIEW) {
-                const explainField = form.addField({
-                    id: 'custpage_p2p_explain',
-                    type: serverWidget.FieldType.INLINEHTML,
-                    label: 'Rule Match Explanation'
-                });
-                explainField.defaultValue = buildExplainHtml(rec);
+            if (context.type === context.UserEventType.VIEW || context.type === context.UserEventType.EDIT) {
+                addHistorySection(form, rec);
             }
 
-            // Add action buttons based on status
             if (context.type === context.UserEventType.VIEW) {
+                // Add match reason display (explainability)
+                const matchReason = rec.getValue(BF.MATCH_REASON);
+                if (matchReason) {
+                    const explainField = form.addField({
+                        id: 'custpage_p2p_explain',
+                        type: serverWidget.FieldType.INLINEHTML,
+                        label: 'Rule Match Explanation'
+                    });
+                    explainField.defaultValue = buildExplainHtml(rec);
+                }
+
+                // Add action buttons based on status
                 addActionButtons(form, rec);
             }
         } catch (error) {
@@ -81,6 +72,11 @@ define([
                 return;
             }
 
+            // Avoid auto-routing on UI saves; submit/resubmit uses RESTlet actions.
+            if (runtime.executionContext === runtime.ContextType.USER_INTERFACE) {
+                return;
+            }
+
             const rec = record.load({ type: 'purchaseorder', id: context.newRecord.id });
             const status = rec.getValue(BF.APPROVAL_STATUS);
 
@@ -100,6 +96,28 @@ define([
             }
         } catch (error) {
             log.error('afterSubmit error', error);
+        }
+    }
+
+    function addHistorySection(form, rec) {
+        try {
+            if (!rec.id) {
+                return;
+            }
+
+            const historyHtml = historyLogger.buildHistoryHtml(
+                constants.TRANSACTION_TYPES.PURCHASE_ORDER,
+                rec.id
+            );
+
+            const historyField = form.addField({
+                id: 'custpage_p2p_history',
+                type: serverWidget.FieldType.INLINEHTML,
+                label: 'P2P Approval History'
+            });
+            historyField.defaultValue = historyHtml || '';
+        } catch (error) {
+            log.error('addHistorySection error', error);
         }
     }
 
@@ -213,16 +231,24 @@ define([
             return true;
         }
 
+        const oldSignatures = [];
+        const newSignatures = [];
+
+        for (let line = 0; line < oldCount; line++) {
+            oldSignatures.push(buildLineSignature(oldRec, sublistId, line, fieldIds));
+        }
+
         for (let line = 0; line < newCount; line++) {
-            for (let i = 0; i < fieldIds.length; i++) {
-                const fieldId = fieldIds[i];
-                const oldVal = oldRec.getSublistValue({ sublistId: sublistId, fieldId: fieldId, line: line });
-                const newVal = newRec.getSublistValue({ sublistId: sublistId, fieldId: fieldId, line: line });
-                
-                if (valuesDiffer(oldVal, newVal)) {
-                    log.debug('Sublist field changed', { sublist: sublistId, line: line, field: fieldId });
-                    return true;
-                }
+            newSignatures.push(buildLineSignature(newRec, sublistId, line, fieldIds));
+        }
+
+        oldSignatures.sort();
+        newSignatures.sort();
+
+        for (let i = 0; i < oldSignatures.length; i++) {
+            if (oldSignatures[i] !== newSignatures[i]) {
+                log.debug('Sublist lines changed', { sublist: sublistId });
+                return true;
             }
         }
 
@@ -230,11 +256,15 @@ define([
     }
 
     function valuesDiffer(oldVal, newVal) {
-        // Handle numeric comparison
-        if (isNumeric(oldVal) && isNumeric(newVal)) {
-            return Number(oldVal) !== Number(newVal);
-        }
-        return normalize(oldVal) !== normalize(newVal);
+        return normalizeValueForCompare(oldVal) !== normalizeValueForCompare(newVal);
+    }
+
+    function buildLineSignature(rec, sublistId, line, fieldIds) {
+        const values = fieldIds.map(function(fieldId) {
+            const value = rec.getSublistValue({ sublistId: sublistId, fieldId: fieldId, line: line });
+            return normalizeValueForCompare(value);
+        });
+        return JSON.stringify(values);
     }
 
     function isNumeric(val) {
@@ -242,8 +272,9 @@ define([
         return !isNaN(Number(val));
     }
 
-    function normalize(val) {
+    function normalizeValueForCompare(val) {
         if (val === null || val === undefined) return '';
+        if (isNumeric(val)) return String(Number(val));
         return String(val);
     }
 
