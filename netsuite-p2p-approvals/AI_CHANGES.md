@@ -11,6 +11,7 @@ risk-based routing, anomaly detection, and Teams/Slack notifications.
 - Added Teams and Slack webhook notifications with AI context.
 - Hardened suitelets with input validation and clearer UI.
 - Added PO revision tracking and auto re-approval on changes.
+- Added configurable re-approval fields and modes (material vs any).
 
 ## New/Updated NetSuite Objects
 - New approval rule field:
@@ -23,6 +24,11 @@ risk-based routing, anomaly detection, and Teams/Slack notifications.
 ## New/Updated Script Parameters
 - AI routing / auto-approve:
   - `custscript_p2p_auto_approve_threshold` (decimal, PO only)
+- PO re-approval detection:
+  - `custscript_p2p_reapproval_mode` (`material` or `any`)
+  - `custscript_p2p_reapproval_body_fields`
+  - `custscript_p2p_reapproval_item_fields`
+  - `custscript_p2p_reapproval_expense_fields`
 - Anomaly tuning:
   - `custscript_p2p_new_vendor_days`
   - `custscript_p2p_min_vendor_bills_account_anom`
@@ -45,6 +51,7 @@ risk-based routing, anomaly detection, and Teams/Slack notifications.
   - If an approved PO is edited and material fields or line items change, the
     record is reset to Draft, revision number is incremented, and the approval
     flow restarts automatically.
+  - Re-approval detection can be configured via script parameters.
 
 ## Default Thresholds (Conservative)
 - `NEW_VENDOR_DAYS`: 14

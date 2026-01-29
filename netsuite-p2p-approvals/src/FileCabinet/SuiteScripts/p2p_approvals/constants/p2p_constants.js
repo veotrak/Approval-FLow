@@ -193,7 +193,11 @@ define([], function() {
     const SCRIPT_PARAMS = {
         AUTO_APPROVE_THRESHOLD: 'custscript_p2p_auto_approve_threshold',
         NEW_VENDOR_DAYS: 'custscript_p2p_new_vendor_days',
-        MIN_VENDOR_BILLS_FOR_ACCOUNT_ANOMALY: 'custscript_p2p_min_vendor_bills_account_anom'
+        MIN_VENDOR_BILLS_FOR_ACCOUNT_ANOMALY: 'custscript_p2p_min_vendor_bills_account_anom',
+        REAPPROVAL_MODE: 'custscript_p2p_reapproval_mode',
+        REAPPROVAL_BODY_FIELDS: 'custscript_p2p_reapproval_body_fields',
+        REAPPROVAL_ITEM_FIELDS: 'custscript_p2p_reapproval_item_fields',
+        REAPPROVAL_EXPENSE_FIELDS: 'custscript_p2p_reapproval_expense_fields'
     };
 
     const SCRIPTS = {

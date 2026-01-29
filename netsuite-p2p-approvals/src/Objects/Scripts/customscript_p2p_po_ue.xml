@@ -15,6 +15,22 @@
       <label>Auto-Approve Risk Score Threshold</label>
       <fieldtype>DECIMALNUMBER</fieldtype>
     </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_reapproval_mode">
+      <label>Reapproval Mode (material|any)</label>
+      <fieldtype>TEXT</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_reapproval_body_fields">
+      <label>Reapproval Body Fields (comma-separated)</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_reapproval_item_fields">
+      <label>Reapproval Item Fields (comma-separated)</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
+    <scriptcustomfield scriptid="custscript_p2p_reapproval_expense_fields">
+      <label>Reapproval Expense Fields (comma-separated)</label>
+      <fieldtype>TEXTAREA</fieldtype>
+    </scriptcustomfield>
   </scriptcustomfields>
   <scriptdeployments>
     <scriptdeployment scriptid="customdeploy_p2p_po_ue">

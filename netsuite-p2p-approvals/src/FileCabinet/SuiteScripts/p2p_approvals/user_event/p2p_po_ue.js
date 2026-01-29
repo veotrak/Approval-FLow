@@ -77,9 +77,10 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
             if (context.type === context.UserEventType.EDIT && context.oldRecord) {
                 const oldStatus = context.oldRecord.getValue(constants.BODY_FIELDS.APPROVAL_STATUS);
                 const status = recordObj.getValue(constants.BODY_FIELDS.APPROVAL_STATUS);
+                const config = getReapprovalConfig();
                 const requiresReapproval = oldStatus === constants.APPROVAL_STATUS.APPROVED
                     && status === constants.APPROVAL_STATUS.APPROVED
-                    && hasMaterialChanges(context.oldRecord, recordObj);
+                    && hasRelevantChanges(context.oldRecord, recordObj, config);
                 if (requiresReapproval) {
                     recordObj.setValue({ fieldId: constants.BODY_FIELDS.APPROVAL_STATUS, value: constants.APPROVAL_STATUS.DRAFT });
                     recordObj.setValue({ fieldId: constants.BODY_FIELDS.CURRENT_STEP, value: '' });
@@ -125,15 +126,18 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
         }
     }
 
-    function hasMaterialChanges(oldRecord, newRecord) {
-        return hasBodyFieldChanges(oldRecord, newRecord, [
-            'entity', 'subsidiary', 'department', 'location', 'currency', 'exchangerate',
-            'trandate', 'terms', 'memo', 'otherrefnum', 'class', 'approvalstatus'
-        ]) || hasSublistChanges(oldRecord, newRecord, 'item', [
+    function hasRelevantChanges(oldRecord, newRecord, config) {
+        const bodyFields = getBodyFieldsForComparison(oldRecord, config);
+        const itemFields = getSublistFieldsForComparison(oldRecord, 'item', config, [
             'item', 'quantity', 'rate', 'amount', 'department', 'location', 'class'
-        ]) || hasSublistChanges(oldRecord, newRecord, 'expense', [
+        ]);
+        const expenseFields = getSublistFieldsForComparison(oldRecord, 'expense', config, [
             'account', 'amount', 'memo', 'department', 'location', 'class'
         ]);
+
+        return hasBodyFieldChanges(oldRecord, newRecord, bodyFields)
+            || hasSublistChanges(oldRecord, newRecord, 'item', itemFields)
+            || hasSublistChanges(oldRecord, newRecord, 'expense', expenseFields);
     }
 
     function hasBodyFieldChanges(oldRecord, newRecord, fieldIds) {
@@ -188,6 +192,75 @@ define(['N/record', 'N/runtime', 'N/ui/serverWidget',
             return '';
         }
         return String(value);
+    }
+
+    function getReapprovalConfig() {
+        const script = runtime.getCurrentScript();
+        const mode = normalizeText(script.getParameter({ name: constants.SCRIPT_PARAMS.REAPPROVAL_MODE }))
+            .toLowerCase() || 'material';
+        return {
+            mode: mode,
+            bodyFields: parseFieldList(script.getParameter({ name: constants.SCRIPT_PARAMS.REAPPROVAL_BODY_FIELDS })),
+            itemFields: parseFieldList(script.getParameter({ name: constants.SCRIPT_PARAMS.REAPPROVAL_ITEM_FIELDS })),
+            expenseFields: parseFieldList(script.getParameter({ name: constants.SCRIPT_PARAMS.REAPPROVAL_EXPENSE_FIELDS }))
+        };
+    }
+
+    function parseFieldList(raw) {
+        if (!raw) {
+            return [];
+        }
+        return String(raw)
+            .split(/[,;\s]+/)
+            .map(function(value) { return value.trim(); })
+            .filter(function(value) { return value; });
+    }
+
+    function getBodyFieldsForComparison(oldRecord, config) {
+        if (config.bodyFields && config.bodyFields.length) {
+            return config.bodyFields;
+        }
+        if (config.mode === 'any') {
+            return filterIgnoredBodyFields(oldRecord.getFields() || []);
+        }
+        return [
+            'entity', 'subsidiary', 'department', 'location', 'currency', 'exchangerate',
+            'trandate', 'terms', 'memo', 'otherrefnum', 'class', 'approvalstatus'
+        ];
+    }
+
+    function getSublistFieldsForComparison(oldRecord, sublistId, config, defaults) {
+        const configFields = sublistId === 'item' ? config.itemFields : config.expenseFields;
+        if (configFields && configFields.length) {
+            return configFields;
+        }
+        if (config.mode === 'any') {
+            try {
+                const fields = oldRecord.getSublistFields({ sublistId: sublistId });
+                if (fields && fields.length) {
+                    return fields;
+                }
+            } catch (error) {
+                log.error('getSublistFieldsForComparison error', error);
+            }
+        }
+        return defaults;
+    }
+
+    function filterIgnoredBodyFields(fieldIds) {
+        const ignored = {
+            lastmodifieddate: true,
+            lastmodifiedby: true,
+            createddate: true,
+            systemnotes: true,
+            custbody_p2p_current_step: true,
+            custbody_p2p_current_approver: true,
+            custbody_p2p_approval_rule: true,
+            custbody_p2p_approval_status: true
+        };
+        return (fieldIds || []).filter(function(fieldId) {
+            return fieldId && !ignored[fieldId];
+        });
     }
 
     return { beforeLoad: beforeLoad, beforeSubmit: beforeSubmit, afterSubmit: afterSubmit };
