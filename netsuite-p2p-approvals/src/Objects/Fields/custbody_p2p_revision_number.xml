@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactionbodycustomfield scriptid="custbody_p2p_revision_number">
+  <label>P2P Revision Number</label>
+  <fieldtype>INTEGER</fieldtype>
+  <appliestopurchaseorder>T</appliestopurchaseorder>
+</transactionbodycustomfield>

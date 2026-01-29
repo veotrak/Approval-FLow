@@ -10,6 +10,7 @@ risk-based routing, anomaly detection, and Teams/Slack notifications.
 - Added optional auto-approve for low-risk Purchase Orders only.
 - Added Teams and Slack webhook notifications with AI context.
 - Hardened suitelets with input validation and clearer UI.
+- Added PO revision tracking and auto re-approval on changes.
 
 ## New/Updated NetSuite Objects
 - New approval rule field:
@@ -17,6 +18,7 @@ risk-based routing, anomaly detection, and Teams/Slack notifications.
 - New transaction body fields:
   - `custbody_p2p_ai_risk_summary` (P2P AI Risk Summary)
   - `custbody_p2p_ai_exception_suggestion` (P2P AI Exception Suggestion)
+  - `custbody_p2p_revision_number` (P2P Revision Number)
 
 ## New/Updated Script Parameters
 - AI routing / auto-approve:
@@ -39,6 +41,10 @@ risk-based routing, anomaly detection, and Teams/Slack notifications.
   - Price variance over limit (existing logic).
   - New account for vendor (only after sufficient vendor history).
   - Anomalies are appended to `custbody_p2p_ai_risk_flags`.
+- PO revision handling:
+  - If an approved PO is edited and material fields or line items change, the
+    record is reset to Draft, revision number is incremented, and the approval
+    flow restarts automatically.
 
 ## Default Thresholds (Conservative)
 - `NEW_VENDOR_DAYS`: 14

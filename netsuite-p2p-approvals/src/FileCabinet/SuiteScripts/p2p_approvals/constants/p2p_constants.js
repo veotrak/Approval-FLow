@@ -164,7 +164,8 @@ define([], function() {
         AI_RISK_SCORE: 'custbody_p2p_ai_risk_score',
         AI_RISK_FLAGS: 'custbody_p2p_ai_risk_flags',
         AI_RISK_SUMMARY: 'custbody_p2p_ai_risk_summary',
-        AI_EXCEPTION_SUGGESTION: 'custbody_p2p_ai_exception_suggestion'
+        AI_EXCEPTION_SUGGESTION: 'custbody_p2p_ai_exception_suggestion',
+        REVISION_NUMBER: 'custbody_p2p_revision_number'
     };
 
     const CONFIG = {
