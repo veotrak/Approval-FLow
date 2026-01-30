@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<transactionbodycustomfield scriptid="custbody_p2p_match_reason">
-  <label>P2P Match Reason</label>
-  <fieldtype>TEXTAREA</fieldtype>
-  <appliestopurchaseorder>T</appliestopurchaseorder>
-  <appliestovendorbill>T</appliestovendorbill>
-  <help>Human-readable explanation of why this transaction matched the decision rule</help>
-</transactionbodycustomfield>

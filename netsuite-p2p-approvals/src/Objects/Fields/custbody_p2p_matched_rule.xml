@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<transactionbodycustomfield scriptid="custbody_p2p_matched_rule">
-  <label>P2P Matched Rule</label>
-  <fieldtype>SELECT</fieldtype>
-  <selectrecordtype>customrecord_p2p_decision_rule</selectrecordtype>
-  <appliestopurchaseorder>T</appliestopurchaseorder>
-  <appliestovendorbill>T</appliestovendorbill>
-  <help>The decision rule that matched when this transaction was submitted for approval</help>
-</transactionbodycustomfield>
