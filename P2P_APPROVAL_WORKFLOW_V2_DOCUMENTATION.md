@@ -478,6 +478,7 @@ The RESTlet accepts these actions:
 - `reject` - Reject pending task
 - `recall` - Recall submitted transaction
 - `resubmit` - Resubmit rejected transaction
+- `previewMatch` - Preview rule/path match without submission
 - `recheckMatching` - Re-run 3-way matching (VB only)
 - `approveException` - Approve with exception override
 

@@ -53,6 +53,9 @@ define([
                 case 'resubmit':
                     return controller.handleResubmit({ recordType, recordId });
 
+                case 'previewMatch':
+                    return controller.previewMatch({ recordType, recordId });
+
                 case 'recheckMatching':
                     return handleRecheckMatching(recordId);
 
@@ -241,6 +244,10 @@ define([
 
         if (action === 'recheckMatching') {
             return isApprover(recordType, recordId, user.id);
+        }
+
+        if (action === 'previewMatch') {
+            return isAdmin();
         }
 
         if (action === 'score') {

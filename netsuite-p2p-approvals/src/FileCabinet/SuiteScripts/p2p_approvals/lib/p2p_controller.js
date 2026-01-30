@@ -31,15 +31,7 @@ define([
             const tranType = constants.TRANSACTION_TYPE_MAP[params.recordType];
             
             // Build context for rule matching
-            const context = {
-                tranType: tranType,
-                subsidiary: tran.getValue('subsidiary'),
-                amount: parseFloat(tran.getValue('total')) || 0,
-                department: tran.getValue('department'),
-                location: tran.getValue('location'),
-                riskScore: parseFloat(tran.getValue(BF.AI_RISK_SCORE)) || null,
-                exceptionType: tran.getValue(BF.EXCEPTION_TYPE) || null
-            };
+            const context = buildMatchContext(tran, tranType);
 
             // Check for auto-approve (PO only, low risk, no exceptions)
             const cfg = config.getConfig();
@@ -68,6 +60,29 @@ define([
             return result;
         } catch (error) {
             log.error('handleSubmit error', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Preview rule match without changing transaction state
+     * @param {Object} params
+     * @param {string} params.recordType - NetSuite record type
+     * @param {number} params.recordId - Transaction internal ID
+     * @returns {Object} Result with matched rule/path or fallback
+     */
+    function previewMatch(params) {
+        try {
+            const tran = record.load({ type: params.recordType, id: params.recordId });
+            const tranType = constants.TRANSACTION_TYPE_MAP[params.recordType];
+            const context = buildMatchContext(tran, tranType);
+            const match = ruleMatcher.findMatch(context);
+            if (!match) {
+                return { success: false, message: 'No matching approval rule found and no fallback configured.' };
+            }
+            return { success: true, match: match };
+        } catch (error) {
+            log.error('previewMatch error', error);
             return { success: false, message: error.message };
         }
     }
@@ -131,6 +146,21 @@ define([
         if (context.riskScore === null || context.riskScore > cfg.autoApproveThreshold) return false;
         
         return true;
+    }
+
+    /**
+     * Build rule matching context from a transaction record
+     */
+    function buildMatchContext(tran, tranType) {
+        return {
+            tranType: tranType,
+            subsidiary: tran.getValue('subsidiary'),
+            amount: parseFloat(tran.getValue('total')) || 0,
+            department: tran.getValue('department'),
+            location: tran.getValue('location'),
+            riskScore: parseFloat(tran.getValue(BF.AI_RISK_SCORE)) || null,
+            exceptionType: tran.getValue(BF.EXCEPTION_TYPE) || null
+        };
     }
 
     /**
@@ -503,6 +533,7 @@ define([
         handleReject: handleReject,
         handleRecall: handleRecall,
         handleResubmit: handleResubmit,
+        previewMatch: previewMatch,
         findPendingTaskForUser: findPendingTaskForUser,
         checkSegregationOfDuties: checkSegregationOfDuties
     };
