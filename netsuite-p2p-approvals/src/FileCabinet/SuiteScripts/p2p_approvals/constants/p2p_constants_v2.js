@@ -53,12 +53,16 @@ define([], function() {
     };
 
     const APPROVAL_ACTION = {
-        APPROVE: '1',
-        REJECT: '2',
-        REASSIGN: '3',
-        ESCALATE: '4',
-        SUBMIT: '5',
-        RESUBMIT: '6'
+        SUBMIT: '1',
+        APPROVE: '2',
+        REJECT: '3',
+        DELEGATE: '4',
+        ESCALATE: '5',
+        RECALLED: '6',
+        REASSIGN: '7',
+        COMMENT: '8',
+        EXCEPTION_OVERRIDE: '9',
+        RESUBMIT: '10'
     };
 
     const APPROVER_TYPE = {
@@ -68,7 +72,8 @@ define([], function() {
 
     const EXECUTION_MODE = {
         SERIAL: '1',
-        PARALLEL: '2'
+        PARALLEL: '2',
+        PARALLEL_ANY: '3'
     };
 
     const TASK_STATUS = {

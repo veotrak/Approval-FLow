@@ -37,35 +37,54 @@ define(['N/search', 'N/format', './p2p_config', '../constants/p2p_constants_v2']
                 return getFallbackResult(context);
             }
 
-            // Evaluate each rule in priority order
+            const matchedRules = [];
             for (let i = 0; i < rules.length; i++) {
                 const rule = rules[i];
                 const evaluation = evaluateRule(rule, context);
                 
                 if (evaluation.matches) {
-                    const path = loadPath(rule.pathId);
-                    if (!path) {
-                        log.error('findMatch', 'Path not found for rule: ' + rule.id);
-                        continue;
-                    }
-
-                    const steps = loadPathSteps(rule.pathId);
-                    
-                    return {
-                        rule: {
-                            id: rule.id,
-                            code: rule.code,
-                            name: rule.name,
-                            priority: rule.priority
-                        },
-                        path: path,
-                        steps: steps,
-                        explanation: buildExplanation(rule, context, evaluation)
-                    };
+                    matchedRules.push({
+                        rule: rule,
+                        evaluation: evaluation,
+                        specificity: calculateSpecificityScore(rule)
+                    });
                 }
             }
 
-            log.audit('findMatch', 'No matching rule found for context: ' + JSON.stringify(context));
+            if (!matchedRules.length) {
+                log.audit('findMatch', 'No matching rule found for context: ' + JSON.stringify(context));
+                return getFallbackResult(context);
+            }
+
+            matchedRules.sort(function(a, b) {
+                if (b.specificity !== a.specificity) return b.specificity - a.specificity;
+                return (a.rule.priority || 999) - (b.rule.priority || 999);
+            });
+
+            for (let i = 0; i < matchedRules.length; i++) {
+                const candidate = matchedRules[i];
+                const path = loadPath(candidate.rule.pathId);
+                if (!path) {
+                    log.error('findMatch', 'Path not found for rule: ' + candidate.rule.id);
+                    continue;
+                }
+
+                const steps = loadPathSteps(candidate.rule.pathId);
+                
+                return {
+                    rule: {
+                        id: candidate.rule.id,
+                        code: candidate.rule.code,
+                        name: candidate.rule.name,
+                        priority: candidate.rule.priority
+                    },
+                    path: path,
+                    steps: steps,
+                    explanation: buildExplanation(candidate.rule, context, candidate.evaluation)
+                };
+            }
+
+            log.audit('findMatch', 'No valid approval path found for matching rules.');
             return getFallbackResult(context);
         } catch (error) {
             log.error('findMatch error', error);
@@ -159,35 +178,38 @@ define(['N/search', 'N/format', './p2p_config', '../constants/p2p_constants_v2']
 
         // Subsidiary check (if specified)
         if (rule.subsidiary.length > 0) {
+            const subValue = context.subsidiary ? String(context.subsidiary) : '';
             const subCheck = {
                 field: 'Subsidiary',
-                passed: rule.subsidiary.includes(String(context.subsidiary)),
+                passed: subValue && rule.subsidiary.includes(subValue),
                 expected: 'One of: ' + rule.subsidiary.join(', '),
-                actual: String(context.subsidiary)
+                actual: subValue || 'None'
             };
             checks.push(subCheck);
             if (!subCheck.passed) matches = false;
         }
 
         // Department check (if specified)
-        if (rule.department.length > 0 && context.department) {
+        if (rule.department.length > 0) {
+            const deptValue = context.department ? String(context.department) : '';
             const deptCheck = {
                 field: 'Department',
-                passed: rule.department.includes(String(context.department)),
+                passed: deptValue && rule.department.includes(deptValue),
                 expected: 'One of: ' + rule.department.join(', '),
-                actual: String(context.department)
+                actual: deptValue || 'None'
             };
             checks.push(deptCheck);
             if (!deptCheck.passed) matches = false;
         }
 
         // Location check (if specified)
-        if (rule.location.length > 0 && context.location) {
+        if (rule.location.length > 0) {
+            const locValue = context.location ? String(context.location) : '';
             const locCheck = {
                 field: 'Location',
-                passed: rule.location.includes(String(context.location)),
+                passed: locValue && rule.location.includes(locValue),
                 expected: 'One of: ' + rule.location.join(', '),
-                actual: String(context.location)
+                actual: locValue || 'None'
             };
             checks.push(locCheck);
             if (!locCheck.passed) matches = false;
@@ -219,6 +241,22 @@ define(['N/search', 'N/format', './p2p_config', '../constants/p2p_constants_v2']
         }
 
         return { matches: matches, checks: checks };
+    }
+
+    /**
+     * Calculate specificity score based on how many optional fields are set
+     * Higher score = more specific rule
+     * @param {Object} rule - Decision rule
+     * @returns {number} Specificity score
+     */
+    function calculateSpecificityScore(rule) {
+        let score = 0;
+        if (rule.subsidiary.length > 0) score += 1;
+        if (rule.department.length > 0) score += 2;
+        if (rule.location.length > 0) score += 1;
+        if (!isNaN(rule.riskMin) || !isNaN(rule.riskMax)) score += 1;
+        if (rule.exception.length > 0) score += 1;
+        return score;
     }
 
     /**

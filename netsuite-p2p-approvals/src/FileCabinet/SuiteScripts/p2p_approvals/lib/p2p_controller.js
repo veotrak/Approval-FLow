@@ -165,6 +165,12 @@ define([
             const recordType = constants.TRANSACTION_TYPE_REVERSE[tranType];
             const sequence = task.getValue(TF.SEQUENCE);
             const pathId = task.getValue(TF.PATH);
+            const stepId = task.getValue(TF.PATH_STEP);
+            let stepMode = null;
+            if (stepId) {
+                const step = record.load({ type: constants.RECORD_TYPES.PATH_STEP, id: stepId });
+                stepMode = step.getValue(constants.STEP_FIELDS.MODE);
+            }
 
             // Segregation of duties check
             if (!checkSegregationOfDuties(recordType, recordId, currentUser)) {
@@ -188,6 +194,18 @@ define([
                 method: params.method || constants.APPROVAL_METHOD.UI,
                 ipAddress: params.ipAddress
             });
+
+            if (stepMode === constants.EXECUTION_MODE.PARALLEL_ANY) {
+                pathRunner.cancelPendingTasks({
+                    tranType: tranType,
+                    recordId: recordId,
+                    sequence: sequence,
+                    excludeTaskId: params.taskId,
+                    reason: 'Auto-cancelled - parallel any step approved by another approver',
+                    method: params.method || constants.APPROVAL_METHOD.UI,
+                    skipHistory: true
+                });
+            }
 
             // Check if step is complete
             if (!pathRunner.isStepComplete(tranType, recordId, sequence)) {
@@ -273,7 +291,8 @@ define([
                 tranType: tranType,
                 recordId: recordId,
                 reason: 'Cancelled due to rejection',
-                method: params.method || constants.APPROVAL_METHOD.UI
+                method: params.method || constants.APPROVAL_METHOD.UI,
+                action: constants.APPROVAL_ACTION.REJECT
             });
 
             // Update transaction status
@@ -331,7 +350,8 @@ define([
                 tranType: tranType,
                 recordId: params.recordId,
                 reason: 'Recalled by submitter',
-                method: constants.APPROVAL_METHOD.UI
+                method: constants.APPROVAL_METHOD.UI,
+                action: constants.APPROVAL_ACTION.RECALLED
             });
 
             // Reset transaction

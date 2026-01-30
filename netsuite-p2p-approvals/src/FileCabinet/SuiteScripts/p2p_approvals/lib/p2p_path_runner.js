@@ -115,6 +115,14 @@ define([
                 return completeApproval(params);
             }
 
+            if (!isCurrentStep(params.recordType, params.recordId, params.currentSequence)) {
+                return { success: true, status: 'already_advanced' };
+            }
+
+            if (hasPendingTasksForSequence(params.tranType, params.recordId, nextStep.sequence)) {
+                return { success: true, status: 'already_advanced' };
+            }
+
             // Create tasks for next step
             const createdTasks = createTasksForStep({
                 tranType: params.tranType,
@@ -194,7 +202,7 @@ define([
         }
 
         const cfg = config.getConfig();
-        const isParallel = step.mode === constants.EXECUTION_MODE.PARALLEL;
+        const isParallel = step.mode === constants.EXECUTION_MODE.PARALLEL || step.mode === constants.EXECUTION_MODE.PARALLEL_ANY;
         const targetApprovers = isParallel ? approvers : [approvers[0]];
         
         let count = 0;
@@ -314,25 +322,38 @@ define([
     }
 
     /**
-     * Cancel all pending tasks for a transaction (used on rejection)
+     * Cancel pending tasks for a transaction (used on rejection/recall/parallel-any)
      * @param {Object} params
+     * @param {number} [params.sequence] - Optional sequence filter
+     * @param {number} [params.excludeTaskId] - Optional task ID to skip
+     * @param {string} [params.action] - History action to log
+     * @param {boolean} [params.skipHistory] - Skip history logging
      */
     function cancelPendingTasks(params) {
         try {
+            const filters = [
+                [TF.TRAN_TYPE, 'anyof', params.tranType],
+                'and',
+                [TF.TRAN_ID, 'equalto', params.recordId],
+                'and',
+                [TF.STATUS, 'anyof', constants.TASK_STATUS.PENDING]
+            ];
+
+            if (params.sequence !== undefined && params.sequence !== null && params.sequence !== '') {
+                filters.push('and', [TF.SEQUENCE, 'equalto', params.sequence]);
+            }
+
             const pendingSearch = search.create({
                 type: constants.RECORD_TYPES.APPROVAL_TASK,
-                filters: [
-                    [TF.TRAN_TYPE, 'anyof', params.tranType],
-                    'and',
-                    [TF.TRAN_ID, 'equalto', params.recordId],
-                    'and',
-                    [TF.STATUS, 'anyof', constants.TASK_STATUS.PENDING]
-                ],
+                filters: filters,
                 columns: ['internalid', TF.APPROVER, TF.ACTING_APPROVER, TF.SEQUENCE]
             });
 
             pendingSearch.run().each(function(result) {
                 const taskId = result.getValue('internalid');
+                if (params.excludeTaskId && String(taskId) === String(params.excludeTaskId)) {
+                    return true;
+                }
                 
                 record.submitFields({
                     type: constants.RECORD_TYPES.APPROVAL_TASK,
@@ -345,16 +366,18 @@ define([
                     }
                 });
 
-                historyLogger.logAction({
-                    transactionType: params.tranType,
-                    transactionId: params.recordId,
-                    stepSequence: result.getValue(TF.SEQUENCE),
-                    approver: result.getValue(TF.APPROVER),
-                    actingApprover: result.getValue(TF.ACTING_APPROVER),
-                    action: constants.APPROVAL_ACTION.REJECT,
-                    comment: params.reason || 'Cancelled due to rejection',
-                    method: params.method || constants.APPROVAL_METHOD.UI
-                });
+                if (!params.skipHistory) {
+                    historyLogger.logAction({
+                        transactionType: params.tranType,
+                        transactionId: params.recordId,
+                        stepSequence: result.getValue(TF.SEQUENCE),
+                        approver: result.getValue(TF.APPROVER),
+                        actingApprover: result.getValue(TF.ACTING_APPROVER),
+                        action: params.action || constants.APPROVAL_ACTION.REJECT,
+                        comment: params.reason || 'Cancelled due to rejection',
+                        method: params.method || constants.APPROVAL_METHOD.UI
+                    });
+                }
 
                 return true;
             });
@@ -406,6 +429,42 @@ define([
         });
 
         return steps;
+    }
+
+    /**
+     * Check if the transaction is still on the expected step
+     */
+    function isCurrentStep(recordType, recordId, sequence) {
+        try {
+            const tran = record.load({ type: recordType, id: recordId });
+            const currentStep = tran.getValue(BF.CURRENT_STEP);
+            return String(currentStep) === String(sequence);
+        } catch (error) {
+            log.error('isCurrentStep error', error);
+            return true;
+        }
+    }
+
+    /**
+     * Check if there are pending tasks for a sequence
+     */
+    function hasPendingTasksForSequence(tranType, recordId, sequence) {
+        const pendingSearch = search.create({
+            type: constants.RECORD_TYPES.APPROVAL_TASK,
+            filters: [
+                [TF.TRAN_TYPE, 'anyof', tranType],
+                'and',
+                [TF.TRAN_ID, 'equalto', recordId],
+                'and',
+                [TF.SEQUENCE, 'equalto', sequence],
+                'and',
+                [TF.STATUS, 'anyof', constants.TASK_STATUS.PENDING]
+            ],
+            columns: ['internalid']
+        });
+
+        const results = pendingSearch.run().getRange({ start: 0, end: 1 });
+        return results && results.length > 0;
     }
 
     /**
