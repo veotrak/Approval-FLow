@@ -8,8 +8,8 @@
 define([
     'N/record', 'N/runtime', 'N/ui/serverWidget',
     '../lib/p2p_controller',
-    '../lib/p2p_history_logger_v2',
-    '../lib/p2p_matching_engine_v2',
+    '../lib/p2p_history_logger',
+    '../lib/p2p_matching_engine',
     '../constants/p2p_constants_v2'
 ], function(record, runtime, serverWidget, controller, historyLogger, matchingEngine, constants) {
     'use strict';
@@ -33,7 +33,7 @@ define([
             const currentUser = runtime.getCurrentUser().id;
 
             // Set client script
-            form.clientScriptModulePath = '../client/p2p_vb_cs_v2.js';
+            form.clientScriptModulePath = '../client/p2p_vb_cs.js';
 
             // Add approval history section
             addHistorySection(form, rec);

@@ -7,9 +7,9 @@
  */
 define([
     'N/ui/serverWidget', 'N/record', 'N/url',
-    '../lib/p2p_token_manager_v2',
+    '../lib/p2p_token_manager',
     '../lib/p2p_controller',
-    '../lib/p2p_history_logger_v2',
+    '../lib/p2p_history_logger',
     '../constants/p2p_constants_v2'
 ], function(serverWidget, record, url, tokenManager, controller, historyLogger, constants) {
     'use strict';

@@ -229,12 +229,9 @@ define([
             });
 
             try {
-                const result = controller.processApprovalByTaskId({
-                    taskId: taskId,
-                    action: action === 'approve' ? ACTION.APPROVE : ACTION.REJECT,
-                    comment: comment,
-                    method: METHOD.BULK
-                });
+                const result = action === 'approve' 
+                    ? controller.handleApprove({ taskId: taskId, comment: comment, method: METHOD.BULK })
+                    : controller.handleReject({ taskId: taskId, comment: comment, method: METHOD.BULK });
 
                 if (result.success) {
                     processed++;
@@ -350,7 +347,7 @@ define([
      * Get URL to return to bulk approvals
      */
     function getReturnUrl() {
-        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_bulk_approval_sl_v2&deploy=customdeploy_p2p_bulk_approval_v2';
+        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_bulk_approval_sl&deploy=customdeploy_p2p_bulk_approval';
     }
 
     /**

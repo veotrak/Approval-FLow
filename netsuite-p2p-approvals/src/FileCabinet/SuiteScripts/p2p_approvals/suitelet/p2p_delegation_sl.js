@@ -7,7 +7,7 @@
  */
 define([
     'N/ui/serverWidget', 'N/runtime', 'N/format', 'N/record',
-    '../lib/p2p_delegation_manager_v2',
+    '../lib/p2p_delegation_manager',
     '../lib/p2p_config',
     '../constants/p2p_constants_v2'
 ], function(serverWidget, runtime, format, record, delegationManager, config, constants) {
@@ -357,14 +357,14 @@ define([
      * Get URL to return to delegation form
      */
     function getReturnUrl() {
-        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_delegation_sl_v2&deploy=customdeploy_p2p_delegation_v2';
+        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_delegation_sl&deploy=customdeploy_p2p_delegation';
     }
 
     /**
      * Get URL to deactivate delegation
      */
     function getDeactivateUrl(id) {
-        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_delegation_sl_v2&deploy=customdeploy_p2p_delegation_v2&action=deactivate&id=' + id;
+        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_delegation_sl&deploy=customdeploy_p2p_delegation&action=deactivate&id=' + id;
     }
 
     /**

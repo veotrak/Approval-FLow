@@ -8,8 +8,8 @@
  */
 define([
     'N/search', 'N/record', 'N/format', 'N/runtime',
-    '../lib/p2p_notification_manager_v2',
-    '../lib/p2p_token_manager_v2',
+    '../lib/p2p_notification_manager',
+    '../lib/p2p_token_manager',
     '../lib/p2p_config',
     '../constants/p2p_constants_v2'
 ], function(search, record, format, runtime, notificationManager, tokenManager, config, constants) {
@@ -27,7 +27,7 @@ define([
 
         try {
             const globalConfig = config.getConfig();
-            const reminderHours = globalConfig.reminderHours || [24, 48];
+            const reminderHours = [globalConfig.reminder1Hrs || 24, globalConfig.reminder2Hrs || 48];
 
             // Process first reminder (e.g., 24 hours)
             if (reminderHours[0]) {

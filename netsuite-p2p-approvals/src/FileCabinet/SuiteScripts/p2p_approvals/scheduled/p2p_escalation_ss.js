@@ -8,9 +8,9 @@
  */
 define([
     'N/search', 'N/record', 'N/format', 'N/runtime',
-    '../lib/p2p_notification_manager_v2',
-    '../lib/p2p_token_manager_v2',
-    '../lib/p2p_history_logger_v2',
+    '../lib/p2p_notification_manager',
+    '../lib/p2p_token_manager',
+    '../lib/p2p_history_logger',
     '../lib/p2p_config',
     '../constants/p2p_constants_v2'
 ], function(search, record, format, runtime, notificationManager, tokenManager, historyLogger, config, constants) {
@@ -134,15 +134,14 @@ define([
                     });
 
                     // Log escalation in history
-                    historyLogger.logEscalation({
+                    historyLogger.logAction({
                         transactionType: tranType,
                         transactionId: tranId,
                         stepSequence: sequence,
-                        originalApprover: originalApprover,
-                        escalatedTo: managerId,
-                        comment: 'Auto-escalated after ' + escalationHours + ' hours',
-                        pathId: pathId,
-                        pathStepId: pathStepId
+                        approver: originalApprover,
+                        action: ACTION.ESCALATE,
+                        comment: 'Auto-escalated after ' + escalationHours + ' hours to manager',
+                        method: METHOD.API
                     });
 
                     // Send escalation notification
