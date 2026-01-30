@@ -14,8 +14,6 @@ define([
 ], function(serverWidget, record, url, tokenManager, controller, historyLogger, constants) {
     'use strict';
 
-    const STATUS = constants.APPROVAL_STATUS;
-    const ACTION = constants.APPROVAL_ACTION;
     const METHOD = constants.APPROVAL_METHOD;
 
     /**
@@ -154,16 +152,19 @@ define([
             const recordType = getRecordTypeFromTranType(validation.transactionType);
 
             // Process via controller
-            const result = controller.processApproval({
-                taskId: validation.taskId,
-                recordType: recordType,
-                recordId: validation.transactionId,
-                action: action === 'approve' ? ACTION.APPROVE : ACTION.REJECT,
-                comment: comment,
-                method: METHOD.EMAIL,
-                ipAddress: ipAddress,
-                approverId: validation.approver
-            });
+            const result = action === 'approve'
+                ? controller.handleApprove({
+                    taskId: validation.taskId,
+                    comment: comment,
+                    method: METHOD.EMAIL,
+                    ipAddress: ipAddress
+                })
+                : controller.handleReject({
+                    taskId: validation.taskId,
+                    comment: comment,
+                    method: METHOD.EMAIL,
+                    ipAddress: ipAddress
+                });
 
             // Invalidate token after use
             tokenManager.invalidateToken(validation.taskId);

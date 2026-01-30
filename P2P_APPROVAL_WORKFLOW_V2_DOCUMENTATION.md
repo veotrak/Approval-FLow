@@ -479,6 +479,7 @@ The RESTlet accepts these actions:
 - `recall` - Recall submitted transaction
 - `resubmit` - Resubmit rejected transaction
 - `previewMatch` - Preview rule/path match without submission
+- `parallelAnyScenario` - Admin-only Parallel Any scenario runner
 - `recheckMatching` - Re-run 3-way matching (VB only)
 - `approveException` - Approve with exception override
 

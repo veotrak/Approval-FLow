@@ -17,6 +17,7 @@ define([
 
     const ADMIN_ROLE = '3';
     const BF = constants.BODY_FIELDS;
+    const TF = constants.TASK_FIELDS;
 
     function get(params) {
         return { status: 'ok', timestamp: new Date().toISOString() };
@@ -55,6 +56,9 @@ define([
 
                 case 'previewMatch':
                     return controller.previewMatch({ recordType, recordId });
+
+                case 'parallelAnyScenario':
+                    return handleParallelAnyScenario(recordType, recordId, payload);
 
                 case 'recheckMatching':
                     return handleRecheckMatching(recordId);
@@ -195,11 +199,92 @@ define([
             id: recordId,
             values: {
                 [BF.EXCEPTION_TYPE]: '',
-                [BF.MATCH_STATUS]: constants.MATCH_STATUS.PASS
+                [BF.MATCH_STATUS]: constants.MATCH_STATUS.EXCEPTION_OVERRIDDEN
             }
         });
 
         return handleApproveAction(recordType, recordId, 'Exception Override: ' + comment);
+    }
+
+    /**
+     * Scenario runner for Parallel Any steps
+     * - Optionally submit if not pending
+     * - Approve one task
+     * - Verify remaining tasks auto-cancel
+     */
+    function handleParallelAnyScenario(recordType, recordId, payload) {
+        try {
+            if (!recordType || !recordId) {
+                return { success: false, message: 'Missing recordType or recordId' };
+            }
+
+            const submitIfNeeded = payload && Object.prototype.hasOwnProperty.call(payload, 'submitIfNeeded')
+                ? payload.submitIfNeeded !== false
+                : true;
+            const comment = payload && payload.comment
+                ? String(payload.comment)
+                : 'Parallel Any scenario runner';
+
+            if (submitIfNeeded) {
+                const tran = record.load({ type: recordType, id: recordId });
+                if (tran.getValue(BF.APPROVAL_STATUS) !== constants.APPROVAL_STATUS.PENDING_APPROVAL) {
+                    const submitResult = controller.handleSubmit({ recordType, recordId });
+                    if (!submitResult.success) {
+                        return submitResult;
+                    }
+                }
+            }
+
+            const targetTaskId = resolveScenarioTaskId(recordType, recordId, payload && payload.taskId);
+            if (!targetTaskId) {
+                return { success: false, message: 'No pending task found to approve' };
+            }
+
+            const task = record.load({ type: constants.RECORD_TYPES.APPROVAL_TASK, id: targetTaskId });
+            const stepId = task.getValue(TF.PATH_STEP);
+            const sequence = task.getValue(TF.SEQUENCE);
+            let stepMode = null;
+
+            if (stepId) {
+                const step = record.load({ type: constants.RECORD_TYPES.PATH_STEP, id: stepId });
+                stepMode = step.getValue(constants.STEP_FIELDS.MODE);
+            }
+
+            if (stepMode !== constants.EXECUTION_MODE.PARALLEL_ANY) {
+                return { 
+                    success: false, 
+                    message: 'Current step is not Parallel Any',
+                    stepMode: stepMode
+                };
+            }
+
+            const currentUser = runtime.getCurrentUser().id;
+            const approverId = task.getValue(TF.APPROVER);
+            const actingApproverId = task.getValue(TF.ACTING_APPROVER);
+            if (String(currentUser) !== String(approverId) && String(currentUser) !== String(actingApproverId)) {
+                assignActingApprover(targetTaskId, currentUser);
+            }
+
+            const approveResult = controller.handleApprove({
+                taskId: targetTaskId,
+                comment: comment,
+                method: constants.APPROVAL_METHOD.API
+            });
+
+            if (!approveResult.success) {
+                return approveResult;
+            }
+
+            return {
+                success: true,
+                approvedTaskId: targetTaskId,
+                pendingTasksForSequence: countPendingTasks(recordType, recordId, sequence),
+                pendingTasksTotal: countPendingTasks(recordType, recordId)
+            };
+        } catch (error) {
+            log.error('handleParallelAnyScenario error', error);
+            return { success: false, message: error.message };
+        }
     }
 
     /**
@@ -250,6 +335,10 @@ define([
             return isAdmin();
         }
 
+        if (action === 'parallelAnyScenario') {
+            return isAdmin();
+        }
+
         if (action === 'score') {
             return isAdmin();
         }
@@ -279,7 +368,6 @@ define([
 
     function findAnyPendingTask(recordType, recordId) {
         const tranType = constants.TRANSACTION_TYPE_MAP[recordType];
-        const TF = constants.TASK_FIELDS;
 
         const taskSearch = search.create({
             type: constants.RECORD_TYPES.APPROVAL_TASK,
@@ -298,6 +386,54 @@ define([
 
         const results = taskSearch.run().getRange({ start: 0, end: 1 });
         return results && results.length ? results[0].getValue('internalid') : null;
+    }
+
+    function resolveScenarioTaskId(recordType, recordId, requestedTaskId) {
+        if (requestedTaskId) {
+            return requestedTaskId;
+        }
+
+        const taskId = controller.findPendingTaskForUser(recordType, recordId);
+        if (taskId) {
+            return taskId;
+        }
+
+        if (isAdmin()) {
+            const anyTask = findAnyPendingTask(recordType, recordId);
+            if (anyTask) {
+                assignActingApprover(anyTask, runtime.getCurrentUser().id);
+                return anyTask;
+            }
+        }
+
+        return null;
+    }
+
+    function countPendingTasks(recordType, recordId, sequence) {
+        const tranType = constants.TRANSACTION_TYPE_MAP[recordType];
+        const filters = [
+            [TF.TRAN_TYPE, 'anyof', tranType],
+            'and',
+            [TF.TRAN_ID, 'equalto', recordId],
+            'and',
+            [TF.STATUS, 'anyof', constants.TASK_STATUS.PENDING]
+        ];
+
+        if (sequence !== undefined && sequence !== null && sequence !== '') {
+            filters.push('and', [TF.SEQUENCE, 'equalto', sequence]);
+        }
+
+        const taskSearch = search.create({
+            type: constants.RECORD_TYPES.APPROVAL_TASK,
+            filters: filters,
+            columns: ['internalid']
+        });
+
+        const results = taskSearch.run().getRange({ start: 0, end: 1 });
+        if (results && results.length) {
+            return taskSearch.runPaged({ pageSize: 1000 }).count;
+        }
+        return 0;
     }
 
     function assignActingApprover(taskId, userId) {

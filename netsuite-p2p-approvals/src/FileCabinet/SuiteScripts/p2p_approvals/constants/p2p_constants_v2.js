@@ -46,10 +46,14 @@ define([], function() {
 
     // ===== LIST VALUES =====
     const APPROVAL_STATUS = {
-        DRAFT: '1',
+        PENDING_SUBMISSION: '1',
         PENDING_APPROVAL: '2',
         APPROVED: '3',
-        REJECTED: '4'
+        REJECTED: '4',
+        RECALLED: '5',
+        ESCALATED: '6',
+        PENDING_EXCEPTION_REVIEW: '7',
+        DRAFT: '8'
     };
 
     const APPROVAL_ACTION = {
@@ -66,8 +70,13 @@ define([], function() {
     };
 
     const APPROVER_TYPE = {
-        ROLE: '1',
-        NAMED_PERSON: '2'
+        NAMED_PERSON: '1',
+        SUPERVISOR: '2',
+        DEPARTMENT_MANAGER: '3',
+        SUBSIDIARY_MANAGER: '4',
+        ROLE: '5',
+        CUSTOM_FIELD: '6',
+        SCRIPT: '7'
     };
 
     const EXECUTION_MODE = {
@@ -80,30 +89,48 @@ define([], function() {
         PENDING: '1',
         APPROVED: '2',
         REJECTED: '3',
-        REASSIGNED: '4',
+        DELEGATED: '4',
         ESCALATED: '5',
-        CANCELLED: '6'
+        CANCELLED: '6',
+        EXPIRED: '7'
     };
 
     const EXCEPTION_TYPE = {
-        NONE: '',
-        MISSING_PO: '1',
-        VARIANCE_OVER_LIMIT: '2',
-        MISSING_RECEIPT: '3',
-        MULTIPLE: '4'
+        NONE: '1',
+        PRICE_OVER_TOLERANCE: '2',
+        QUANTITY_OVER: '3',
+        QUANTITY_UNDER: '4',
+        MISSING_PO: '5',
+        MISSING_RECEIPT: '6',
+        DUPLICATE_INVOICE: '7',
+        VENDOR_MISMATCH: '8',
+        CURRENCY_MISMATCH: '9',
+        MULTIPLE: '10',
+
+        // Aliases used in code
+        PRICE_VARIANCE: '2',
+        QTY_VARIANCE: '3',
+        DUPLICATE: '7',
+        VARIANCE_OVER_LIMIT: '2'
     };
 
     const MATCH_STATUS = {
-        NOT_CHECKED: '1',
-        PASS: '2',
-        FAIL: '3'
+        NOT_MATCHED: '1',
+        MATCHED: '2',
+        PARTIAL_MATCH: '3',
+        PRICE_VARIANCE: '4',
+        QTY_VARIANCE: '5',
+        PO_NOT_FOUND: '6',
+        RECEIPT_MISSING: '7',
+        EXCEPTION_OVERRIDDEN: '8'
     };
 
     const APPROVAL_METHOD = {
         UI: '1',
         EMAIL: '2',
         BULK: '3',
-        API: '4'
+        API: '4',
+        MOBILE: '5'
     };
 
     // ===== DECISION RULE FIELDS =====
