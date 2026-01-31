@@ -36,7 +36,7 @@ define([
             const tranType = constants.TRANSACTION_TYPE_MAP[params.recordType];
             
             // Build context for rule matching
-            const context = buildMatchContext(tran, tranType);
+            const context = buildMatchContext(tran, tranType, params.recordType, params.recordId);
 
             // Check for auto-approve (PO only, low risk, no exceptions)
             const cfg = config.getConfig();
@@ -80,7 +80,7 @@ define([
         try {
             const tran = record.load({ type: params.recordType, id: params.recordId });
             const tranType = constants.TRANSACTION_TYPE_MAP[params.recordType];
-            const context = buildMatchContext(tran, tranType);
+            const context = buildMatchContext(tran, tranType, params.recordType, params.recordId);
             const match = ruleMatcher.findMatch(context);
             if (!match) {
                 return { success: false, message: 'No matching approval rule found and no fallback configured.' };
@@ -99,7 +99,7 @@ define([
         try {
             const tran = record.load({ type: params.recordType, id: params.recordId });
             const tranType = constants.TRANSACTION_TYPE_MAP[params.recordType];
-            const context = buildMatchContext(tran, tranType);
+            const context = buildMatchContext(tran, tranType, params.recordType, params.recordId);
             return ruleMatcher.debugMatch(context);
         } catch (error) {
             log.error('debugMatch error', error);
@@ -200,13 +200,19 @@ define([
     /**
      * Build rule matching context from a transaction record
      */
-    function buildMatchContext(tran, tranType) {
+    function buildMatchContext(tran, tranType, recordType, recordId) {
         return {
             tranType: tranType,
+            recordType: recordType,
+            recordId: recordId,
             subsidiary: tran.getValue('subsidiary'),
             amount: parseFloat(tran.getValue('total')) || 0,
             department: tran.getValue('department'),
             location: tran.getValue('location'),
+            customer: tran.getValue('entity'),
+            salesRep: tran.getValue('salesrep'),
+            project: tran.getValue('job'),
+            classId: tran.getValue('class'),
             riskScore: parseFloat(tran.getValue(BF.AI_RISK_SCORE)) || null,
             exceptionType: tran.getValue(BF.EXCEPTION_TYPE) || null
         };
@@ -495,11 +501,11 @@ define([
             // only increment when an approved PO is edited with material changes (amount,
             // items, etc.). That is handled in p2p_po_ue.js handlePOEdit via hasRelevantChanges.
 
-            // PO: Do NOT call handleSubmit - the submitFields (draft reset) above triggers
-            // the PO afterSubmit user event, which already calls handleSubmit when it sees
-            // DRAFT status. Calling handleSubmit again would create duplicate tasks.
+            // PO/SO/Invoice: Do NOT call handleSubmit - the submitFields (draft reset) above
+            // triggers their afterSubmit user event, which already calls handleSubmit when it
+            // sees DRAFT status. Calling handleSubmit again would create duplicate tasks.
             // VB: afterSubmit only does matching, so we must call handleSubmit here.
-            if (params.recordType === 'purchaseorder') {
+            if (params.recordType === 'purchaseorder' || params.recordType === 'salesorder' || params.recordType === 'invoice') {
                 return { success: true, status: 'resubmitted' };
             }
             return handleSubmit(params);

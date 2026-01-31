@@ -37,6 +37,9 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
                 return getFallbackResult(context);
             }
 
+            // Load custom segment values once if any rule uses them
+            populateCustomSegments(context, rules);
+
             const matchedRules = [];
             for (let i = 0; i < rules.length; i++) {
                 const rule = rules[i];
@@ -104,6 +107,7 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
             }
 
             const rules = loadActiveRules(context.tranType);
+            populateCustomSegments(context, rules);
             const evaluated = rules.map(function(rule) {
                 const evaluation = evaluateRule(rule, context);
                 return {
@@ -120,7 +124,13 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
                         location: rule.location,
                         riskMin: rule.riskMin,
                         riskMax: rule.riskMax,
-                        exception: rule.exception
+                        exception: rule.exception,
+                        customer: rule.customer,
+                        salesRep: rule.salesRep,
+                        project: rule.project,
+                        classId: rule.classId,
+                        customSegField: rule.customSegField,
+                        customSegValues: rule.customSegValues
                     },
                     specificity: calculateSpecificityScore(rule),
                     evaluation: evaluation
@@ -218,6 +228,12 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
                     riskMin: parseInt(getRecordValueSafe(ruleRec, DR.RISK_MIN), 10),
                     riskMax: parseInt(getRecordValueSafe(ruleRec, DR.RISK_MAX), 10),
                     exception: parseMultiSelect(getRecordValueSafe(ruleRec, DR.EXCEPTION)),
+                    customer: parseMultiSelect(getRecordValueSafe(ruleRec, DR.CUSTOMER)),
+                    salesRep: parseMultiSelect(getRecordValueSafe(ruleRec, DR.SALES_REP)),
+                    project: parseMultiSelect(getRecordValueSafe(ruleRec, DR.PROJECT)),
+                    classId: parseMultiSelect(getRecordValueSafe(ruleRec, DR.CLASS)),
+                    customSegField: getRecordValueSafe(ruleRec, DR.CUSTOM_SEG_FIELD),
+                    customSegValues: parseMultiSelect(getRecordValueSafe(ruleRec, DR.CUSTOM_SEG_VALUES)),
                     pathId: getRecordValueSafe(ruleRec, DR.PATH),
                     description: getRecordValueSafe(ruleRec, DR.DESCRIPTION)
                 });
@@ -298,6 +314,58 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
             if (!locCheck.passed) matches = false;
         }
 
+        // Customer check (if specified)
+        if (rule.customer.length > 0) {
+            const custValue = context.customer ? String(context.customer) : '';
+            const custCheck = {
+                field: 'Customer',
+                passed: custValue && rule.customer.includes(custValue),
+                expected: 'One of: ' + rule.customer.join(', '),
+                actual: custValue || 'None'
+            };
+            checks.push(custCheck);
+            if (!custCheck.passed) matches = false;
+        }
+
+        // Sales Rep check (if specified)
+        if (rule.salesRep.length > 0) {
+            const salesValue = context.salesRep ? String(context.salesRep) : '';
+            const salesCheck = {
+                field: 'Sales Rep',
+                passed: salesValue && rule.salesRep.includes(salesValue),
+                expected: 'One of: ' + rule.salesRep.join(', '),
+                actual: salesValue || 'None'
+            };
+            checks.push(salesCheck);
+            if (!salesCheck.passed) matches = false;
+        }
+
+        // Project check (if specified)
+        if (rule.project.length > 0) {
+            const projValue = context.project ? String(context.project) : '';
+            const projCheck = {
+                field: 'Project',
+                passed: projValue && rule.project.includes(projValue),
+                expected: 'One of: ' + rule.project.join(', '),
+                actual: projValue || 'None'
+            };
+            checks.push(projCheck);
+            if (!projCheck.passed) matches = false;
+        }
+
+        // Class check (if specified)
+        if (rule.classId.length > 0) {
+            const classValue = context.classId ? String(context.classId) : '';
+            const classCheck = {
+                field: 'Class',
+                passed: classValue && rule.classId.includes(classValue),
+                expected: 'One of: ' + rule.classId.join(', '),
+                actual: classValue || 'None'
+            };
+            checks.push(classCheck);
+            if (!classCheck.passed) matches = false;
+        }
+
         // Risk score check (if specified)
         if (!isNaN(rule.riskMin) || !isNaN(rule.riskMax)) {
             const riskScore = context.riskScore !== undefined ? context.riskScore : null;
@@ -323,6 +391,23 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
             if (!excCheck.passed) matches = false;
         }
 
+        // Custom segment check (if specified)
+        if (rule.customSegField && rule.customSegValues.length > 0) {
+            const customVal = context.customSegments && context.customSegments[rule.customSegField]
+                ? context.customSegments[rule.customSegField]
+                : '';
+            const customActual = Array.isArray(customVal) ? customVal.map(String) : (customVal ? [String(customVal)] : []);
+            const passed = customActual.some(function(val) { return rule.customSegValues.includes(val); });
+            const customCheck = {
+                field: 'Custom Segment ' + rule.customSegField,
+                passed: passed,
+                expected: 'One of: ' + rule.customSegValues.join(', '),
+                actual: customActual.length ? customActual.join(', ') : 'None'
+            };
+            checks.push(customCheck);
+            if (!passed) matches = false;
+        }
+
         return { matches: matches, checks: checks };
     }
 
@@ -339,7 +424,39 @@ define(['N/search', 'N/record', 'N/format', './p2p_config', '../constants/p2p_co
         if (rule.location.length > 0) score += 1;
         if (!isNaN(rule.riskMin) || !isNaN(rule.riskMax)) score += 1;
         if (rule.exception.length > 0) score += 1;
+        if (rule.customer.length > 0) score += 1;
+        if (rule.salesRep.length > 0) score += 1;
+        if (rule.project.length > 0) score += 1;
+        if (rule.classId.length > 0) score += 1;
+        if (rule.customSegField && rule.customSegValues.length > 0) score += 1;
         return score;
+    }
+
+    function populateCustomSegments(context, rules) {
+        try {
+            if (!context || !context.recordType || !context.recordId) return;
+            const fields = {};
+            rules.forEach(function(rule) {
+                if (rule.customSegField) {
+                    fields[rule.customSegField] = true;
+                }
+            });
+            const fieldIds = Object.keys(fields);
+            if (!fieldIds.length) return;
+
+            const tran = record.load({ type: context.recordType, id: context.recordId });
+            context.customSegments = {};
+            fieldIds.forEach(function(fid) {
+                try {
+                    const val = tran.getValue(fid);
+                    context.customSegments[fid] = val;
+                } catch (e) {
+                    // ignore invalid field id
+                }
+            });
+        } catch (e) {
+            // ignore custom segment load errors
+        }
     }
 
     /**

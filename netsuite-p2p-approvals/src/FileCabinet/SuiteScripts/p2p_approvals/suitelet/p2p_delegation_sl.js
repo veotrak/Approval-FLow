@@ -105,6 +105,8 @@ define([
         tranTypeField.addSelectOption({ value: '', text: '-- All Types --' });
         tranTypeField.addSelectOption({ value: TRAN_TYPE.PURCHASE_ORDER, text: 'Purchase Order' });
         tranTypeField.addSelectOption({ value: TRAN_TYPE.VENDOR_BILL, text: 'Vendor Bill' });
+        tranTypeField.addSelectOption({ value: TRAN_TYPE.SALES_ORDER, text: 'Sales Order' });
+        tranTypeField.addSelectOption({ value: TRAN_TYPE.INVOICE, text: 'Invoice' });
 
         // ===== Existing Delegations Section =====
         form.addFieldGroup({

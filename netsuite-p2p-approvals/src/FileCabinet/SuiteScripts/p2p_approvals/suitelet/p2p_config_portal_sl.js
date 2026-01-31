@@ -33,6 +33,7 @@ define([
         });
 
         addInfo(form);
+        addRuleBuilderLink(form);
         addTestSection(form, options);
         addRuleList(form);
         addPathList(form);
@@ -50,6 +51,25 @@ define([
             '<strong>Config Portal:</strong> View Decision Rules and Approval Paths in one place. ' +
             'Use the Rule Tester to preview which path a transaction will follow.' +
             '</div>';
+    }
+
+    function addRuleBuilderLink(form) {
+        try {
+            const link = url.resolveScript({
+                scriptId: 'customscript_p2p_rule_builder_sl',
+                deploymentId: 'customdeploy_p2p_rule_builder'
+            });
+            form.addField({
+                id: 'custpage_rule_builder_link',
+                type: serverWidget.FieldType.INLINEHTML,
+                label: ' '
+            }).defaultValue =
+                '<div style="margin: 10px 0;">' +
+                '<a href="' + link + '" style="display:inline-block; padding:8px 12px; background:#0d6efd; color:#fff; border-radius:4px; text-decoration:none;">Open Rule Builder</a>' +
+                '</div>';
+        } catch (e) {
+            // ignore if deployment not found yet
+        }
     }
 
     function addTestSection(form, options) {
@@ -71,6 +91,8 @@ define([
         typeField.addSelectOption({ value: '', text: '-- Select --' });
         typeField.addSelectOption({ value: 'purchaseorder', text: 'Purchase Order' });
         typeField.addSelectOption({ value: 'vendorbill', text: 'Vendor Bill' });
+        typeField.addSelectOption({ value: 'salesorder', text: 'Sales Order' });
+        typeField.addSelectOption({ value: 'invoice', text: 'Invoice' });
         typeField.defaultValue = testType;
 
         const idField = form.addField({

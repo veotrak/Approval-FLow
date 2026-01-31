@@ -31,17 +31,23 @@ define([], function() {
     // ===== TRANSACTION TYPES =====
     const TRANSACTION_TYPES = {
         PURCHASE_ORDER: '1',
-        VENDOR_BILL: '2'
+        VENDOR_BILL: '2',
+        SALES_ORDER: '3',
+        INVOICE: '4'
     };
 
     const TRANSACTION_TYPE_MAP = {
         purchaseorder: '1',
-        vendorbill: '2'
+        vendorbill: '2',
+        salesorder: '3',
+        invoice: '4'
     };
 
     const TRANSACTION_TYPE_REVERSE = {
         '1': 'purchaseorder',
-        '2': 'vendorbill'
+        '2': 'vendorbill',
+        '3': 'salesorder',
+        '4': 'invoice'
     };
 
     // ===== LIST VALUES (must match P2P Approval Status custom list) =====
@@ -157,6 +163,12 @@ define([], function() {
         RISK_MIN: 'custrecord_p2p_dr_min_risk',
         RISK_MAX: 'custrecord_p2p_dr_max_risk',
         EXCEPTION: 'custrecord_p2p_dr_exception',
+        CUSTOMER: 'custrecord_p2p_dr_customer',
+        SALES_REP: 'custrecord_p2p_dr_sales_rep',
+        PROJECT: 'custrecord_p2p_dr_project',
+        CLASS: 'custrecord_p2p_dr_class',
+        CUSTOM_SEG_FIELD: 'custrecord_p2p_dr_cseg_field',
+        CUSTOM_SEG_VALUES: 'custrecord_p2p_dr_cseg_values',
         PRIORITY: 'custrecord_dr_priority',  // verified: your account uses this (no p2p prefix)
         PATH: 'custrecord_p2p_dr_path',
         EFF_FROM: 'custrecord_p2p_dr_eff_from',

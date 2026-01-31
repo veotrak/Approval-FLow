@@ -39,14 +39,21 @@ Upload each file to the **exact** path shown. In NetSuite: **Customization > Scr
 | 13 | `SuiteScripts/p2p_approvals/suitelet/p2p_bulk_approval_sl.js` | `suitelet/p2p_bulk_approval_sl.js` |
 | 14 | `SuiteScripts/p2p_approvals/suitelet/p2p_delegation_sl.js` | `suitelet/p2p_delegation_sl.js` |
 | 15 | `SuiteScripts/p2p_approvals/suitelet/p2p_email_approval_sl.js` | `suitelet/p2p_email_approval_sl.js` |
-| 16 | `SuiteScripts/p2p_approvals/user_event/p2p_po_ue.js` | `user_event/p2p_po_ue.js` |
-| 17 | `SuiteScripts/p2p_approvals/user_event/p2p_vb_ue.js` | `user_event/p2p_vb_ue.js` |
-| 18 | `SuiteScripts/p2p_approvals/client/p2p_po_cs.js` | `client/p2p_po_cs.js` |
-| 19 | `SuiteScripts/p2p_approvals/client/p2p_vb_cs.js` | `client/p2p_vb_cs.js` |
-| 20 | `SuiteScripts/p2p_approvals/client/p2p_bulk_approval_cs.js` | `client/p2p_bulk_approval_cs.js` |
-| 21 | `SuiteScripts/p2p_approvals/scheduled/p2p_escalation_ss.js` | `scheduled/p2p_escalation_ss.js` |
-| 22 | `SuiteScripts/p2p_approvals/scheduled/p2p_reminder_ss.js` | `scheduled/p2p_reminder_ss.js` |
-| 23 | `SuiteScripts/p2p_approvals/scheduled/p2p_migration_ss.js` | `scheduled/p2p_migration_ss.js` |
+| 16 | `SuiteScripts/p2p_approvals/suitelet/p2p_config_portal_sl.js` | `suitelet/p2p_config_portal_sl.js` |
+| 17 | `SuiteScripts/p2p_approvals/suitelet/p2p_analytics_sl.js` | `suitelet/p2p_analytics_sl.js` |
+| 18 | `SuiteScripts/p2p_approvals/suitelet/p2p_rule_builder_sl.js` | `suitelet/p2p_rule_builder_sl.js` |
+| 18 | `SuiteScripts/p2p_approvals/user_event/p2p_po_ue.js` | `user_event/p2p_po_ue.js` |
+| 19 | `SuiteScripts/p2p_approvals/user_event/p2p_vb_ue.js` | `user_event/p2p_vb_ue.js` |
+| 20 | `SuiteScripts/p2p_approvals/user_event/p2p_so_ue.js` | `user_event/p2p_so_ue.js` |
+| 21 | `SuiteScripts/p2p_approvals/user_event/p2p_inv_ue.js` | `user_event/p2p_inv_ue.js` |
+| 22 | `SuiteScripts/p2p_approvals/client/p2p_po_cs.js` | `client/p2p_po_cs.js` |
+| 23 | `SuiteScripts/p2p_approvals/client/p2p_vb_cs.js` | `client/p2p_vb_cs.js` |
+| 24 | `SuiteScripts/p2p_approvals/client/p2p_so_cs.js` | `client/p2p_so_cs.js` |
+| 25 | `SuiteScripts/p2p_approvals/client/p2p_inv_cs.js` | `client/p2p_inv_cs.js` |
+| 26 | `SuiteScripts/p2p_approvals/client/p2p_bulk_approval_cs.js` | `client/p2p_bulk_approval_cs.js` |
+| 27 | `SuiteScripts/p2p_approvals/scheduled/p2p_escalation_ss.js` | `scheduled/p2p_escalation_ss.js` |
+| 28 | `SuiteScripts/p2p_approvals/scheduled/p2p_reminder_ss.js` | `scheduled/p2p_reminder_ss.js` |
+| 29 | `SuiteScripts/p2p_approvals/scheduled/p2p_migration_ss.js` | `scheduled/p2p_migration_ss.js` |
 
 ---
 
@@ -81,7 +88,40 @@ Create or update deployments for each script. **Customization > Scripting > Scri
 | ID | `customdeploy_p2p_email_approval` |
 | Status | Released |
 
-### 2.4 Suitelet – Delegation
+### 2.4 Suitelet – Config Portal
+
+| Setting | Value |
+|---------|-------|
+| Script | `p2p_config_portal_sl` |
+| ID | `customdeploy_p2p_config_portal` |
+| Status | Released |
+| Log Level | Debug (or Error in prod) |
+
+**Access:** Use the deployment URL or add it to a custom menu for admins.
+
+### 2.5 Suitelet – Analytics Dashboard
+
+| Setting | Value |
+|---------|-------|
+| Script | `p2p_analytics_sl` |
+| ID | `customdeploy_p2p_analytics` |
+| Status | Released |
+| Log Level | Debug (or Error in prod) |
+
+**Access:** Use the deployment URL or add it to a custom menu for admins.
+
+### 2.6 Suitelet – Rule Builder
+
+| Setting | Value |
+|---------|-------|
+| Script | `p2p_rule_builder_sl` |
+| ID | `customdeploy_p2p_rule_builder` |
+| Status | Released |
+| Log Level | Debug (or Error in prod) |
+
+**Access:** Use the deployment URL or open from Config Portal.
+
+### 2.7 Suitelet – Delegation
 
 | Setting | Value |
 |---------|-------|
@@ -89,7 +129,7 @@ Create or update deployments for each script. **Customization > Scripting > Scri
 | ID | `customdeploy_p2p_delegation` |
 | Status | Released |
 
-### 2.5 User Event – Purchase Order
+### 2.8 User Event – Purchase Order
 
 | Setting | Value |
 |---------|-------|
@@ -98,7 +138,35 @@ Create or update deployments for each script. **Customization > Scripting > Scri
 | Status | Released |
 | Record Type | Purchase Order |
 
-### 2.6 User Event – Vendor Bill
+### 2.9 User Event – Vendor Bill
+
+| Setting | Value |
+|---------|-------|
+| Script | `p2p_vb_ue` |
+| ID | `customdeploy_p2p_vb_ue` |
+| Status | Released |
+| Log Level | Debug (or Error in prod) |
+| Record Type | Vendor Bill |
+
+### 2.10 User Event – Sales Order
+
+| Setting | Value |
+|---------|-------|
+| Script | `p2p_so_ue` |
+| ID | `customdeploy_p2p_so_ue` |
+| Status | Released |
+| Log Level | Debug (or Error in prod) |
+| Record Type | Sales Order |
+
+### 2.11 User Event – Invoice
+
+| Setting | Value |
+|---------|-------|
+| Script | `p2p_inv_ue` |
+| ID | `customdeploy_p2p_inv_ue` |
+| Status | Released |
+| Log Level | Debug (or Error in prod) |
+| Record Type | Invoice (Customer Invoice) |
 
 | Setting | Value |
 |---------|-------|
@@ -107,7 +175,7 @@ Create or update deployments for each script. **Customization > Scripting > Scri
 | Status | Released |
 | Record Type | Vendor Bill |
 
-### 2.7 Scheduled Scripts
+### 2.12 Scheduled Scripts
 
 | Script | Deployment ID | Schedule |
 |--------|---------------|----------|
@@ -171,9 +239,9 @@ For VB recall to use a dedicated submitter field:
 
 If you skip this, recall uses `createdby` / `employee` as fallback.
 
-### 4.4 Transaction Body Fields (PO & VB)
+### 4.4 Transaction Body Fields (PO, VB, Sales Order, Invoice)
 
-Ensure these exist on **Purchase Order** and **Vendor Bill**:
+Ensure these exist on **Purchase Order**, **Vendor Bill**, **Sales Order**, and **Invoice** (Customer Invoice):
 
 | Field ID | Type | Label |
 |----------|------|-------|
@@ -188,6 +256,10 @@ Ensure these exist on **Purchase Order** and **Vendor Bill**:
 | `custbody_p2p_revision_number` | Integer | P2P Revision (PO only) |
 | `custbody_p2p_exception_type` | List/Record | P2P Exception Type (VB only) |
 | `custbody_p2p_match_status` | List/Record | P2P Match Status (VB only) |
+
+**Notes:**
+- `custbody_p2p_revision_number` is only required on **Purchase Order**.
+- `custbody_p2p_exception_type` and `custbody_p2p_match_status` are only required on **Vendor Bill**.
 
 ---
 
@@ -271,6 +343,8 @@ All custom lists and their value internal IDs must match the constants in `p2p_c
 |-------------|-------|
 | 1 | Purchase Order |
 | 2 | Vendor Bill |
+| 3 | Sales Order |
+| 4 | Invoice |
 
 ### P2P Exception Type List (`customlist_p2p_exception_type_list`)
 
@@ -373,6 +447,12 @@ If you see errors like `SSS_INVALID_SRCH_COL` or `invalid column`, your field ID
 | `RISK_MIN` | `custrecord_p2p_dr_min_risk` | Decimal Number |
 | `RISK_MAX` | `custrecord_p2p_dr_max_risk` | Decimal Number |
 | `EXCEPTION` | `custrecord_p2p_dr_exception` | List/Record (P2P Exception Type List) |
+| `CUSTOMER` | `custrecord_p2p_dr_customer` | List/Record (Customer) |
+| `SALES_REP` | `custrecord_p2p_dr_sales_rep` | List/Record (Employee) |
+| `PROJECT` | `custrecord_p2p_dr_project` | List/Record (Project/Job) |
+| `CLASS` | `custrecord_p2p_dr_class` | List/Record (Class) |
+| `CUSTOM_SEG_FIELD` | `custrecord_p2p_dr_cseg_field` | Free-Form Text (field ID) |
+| `CUSTOM_SEG_VALUES` | `custrecord_p2p_dr_cseg_values` | Free-Form Text (comma-separated IDs) |
 | `PRIORITY` | `custrecord_dr_priority` | Integer Number |
 | `PATH` | `custrecord_p2p_dr_path` | List/Record (P2P Approval Path) |
 | `EFF_FROM` | `custrecord_p2p_dr_eff_from` | Date |
