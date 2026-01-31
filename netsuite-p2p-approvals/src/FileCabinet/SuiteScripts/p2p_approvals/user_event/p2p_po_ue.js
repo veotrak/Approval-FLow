@@ -6,11 +6,11 @@
  * P2P PO User Event (v2 - Decision Table Architecture)
  */
 define([
-    'N/record', 'N/runtime', 'N/ui/serverWidget',
+    'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/search',
     '../lib/p2p_controller', '../lib/p2p_config', '../lib/p2p_history_logger',
     '../constants/p2p_constants_v2'
 ], function(
-    record, runtime, serverWidget,
+    record, runtime, serverWidget, search,
     controller, config, historyLogger, constants
 ) {
     'use strict';
@@ -112,11 +112,15 @@ define([
             if (matchReason) {
                 routingHtml = buildExplainHtml(rec);
             }
+            var pathHtml = buildPathSummaryHtml(rec);
 
             var wrapperStyle = 'margin: 0; padding: 0;';
             var content = '<div style="' + wrapperStyle + '">';
             if (routingHtml) {
                 content += '<div style="margin-bottom: 20px;">' + routingHtml + '</div>';
+            }
+            if (pathHtml) {
+                content += '<div style="margin-bottom: 20px;">' + pathHtml + '</div>';
             }
             content += '<div style="margin-top: ' + (routingHtml ? '0' : '0') + ';">' + historyHtml + '</div>';
             content += '</div>';
@@ -376,6 +380,181 @@ define([
 
         html += '</div>';
         return html;
+    }
+
+    /**
+     * Build approval chain HTML (full path steps)
+     */
+    function buildPathSummaryHtml(rec) {
+        var pathId = rec.getValue(BF.APPROVAL_PATH);
+        if (!pathId) return '';
+
+        var steps = loadPathSteps(pathId);
+        if (!steps.length) return '';
+
+        var currentStep = rec.getValue(BF.CURRENT_STEP);
+        var status = rec.getValue(BF.APPROVAL_STATUS);
+
+        var cardStyle = 'padding: 16px; background: #fff; border: 1px solid #e9ecef; border-radius: 6px;';
+        var thStyle = 'text-align: left; padding: 8px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; border-bottom: 1px solid #e9ecef;';
+        var tdStyle = 'padding: 8px 6px; font-size: 13px; color: #212529; border-bottom: 1px solid #f1f3f5;';
+
+        var html = '<div style="' + cardStyle + '">';
+        html += '<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px;">';
+        html += '<div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d;">Approval Chain</div>';
+        html += '<div style="font-size: 12px; color: #495057;">' + buildChainHeader(steps, currentStep, status) + '</div>';
+        html += '</div>';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr>';
+        html += '<th style="' + thStyle + ' width: 60px;">Step</th>';
+        html += '<th style="' + thStyle + '">Approver</th>';
+        html += '<th style="' + thStyle + ' width: 110px;">Mode</th>';
+        html += '<th style="' + thStyle + ' width: 90px;">Status</th>';
+        html += '</tr></thead><tbody>';
+
+        steps.forEach(function(step, idx) {
+            var isLast = idx === steps.length - 1;
+            var rowTd = isLast ? tdStyle.replace('border-bottom: 1px solid #f1f3f5;', '') : tdStyle;
+            var approverLabel = getApproverLabel(step);
+            var modeLabel = getModeLabel(step);
+            var stepStatus = getStepStatusLabel(step.sequence, currentStep, status);
+            html += '<tr>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(step.sequence) + '</td>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(step.name) + ' — ' + escapeHtml(approverLabel) + '</td>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(modeLabel) + '</td>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(stepStatus) + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    function buildChainHeader(steps, currentStep, status) {
+        if (!steps || !steps.length) return '';
+        if (status === constants.APPROVAL_STATUS.APPROVED) {
+            return '<strong>Current:</strong> Approved';
+        }
+        if (status === constants.APPROVAL_STATUS.REJECTED) {
+            return '<strong>Current:</strong> Rejected';
+        }
+
+        var curSeq = parseInt(currentStep, 10);
+        var current = null;
+        var next = null;
+
+        for (var i = 0; i < steps.length; i++) {
+            var seq = parseInt(steps[i].sequence, 10);
+            if (curSeq && seq === curSeq) {
+                current = steps[i];
+                if (i + 1 < steps.length) next = steps[i + 1];
+                break;
+            }
+            if (!curSeq && !current) {
+                current = steps[0];
+                if (steps.length > 1) next = steps[1];
+                break;
+            }
+        }
+
+        if (!current) {
+            current = steps[0];
+            if (steps.length > 1) next = steps[1];
+        }
+
+        var currentLabel = current ? (current.name + ' — ' + getApproverLabel(current)) : '—';
+        var nextLabel = next ? (next.name + ' — ' + getApproverLabel(next)) : '—';
+
+        return '<strong>Current:</strong> ' + escapeHtml(currentLabel) + '&nbsp;&nbsp;<strong>Next:</strong> ' + escapeHtml(nextLabel);
+    }
+
+    function getStepStatusLabel(stepSeq, currentStep, status) {
+        if (status === constants.APPROVAL_STATUS.APPROVED) return 'Approved';
+        if (status === constants.APPROVAL_STATUS.REJECTED) return 'Rejected';
+        if (!currentStep) return 'Pending';
+        var seqNum = parseInt(stepSeq, 10);
+        var curNum = parseInt(currentStep, 10);
+        if (seqNum < curNum) return 'Done';
+        if (seqNum === curNum) return 'Current';
+        return 'Pending';
+    }
+
+    function getApproverLabel(step) {
+        if (step.approverType === constants.APPROVER_TYPE.NAMED_PERSON && step.employeeText) {
+            return step.employeeText;
+        }
+        if (step.approverType === constants.APPROVER_TYPE.ROLE && step.roleText) {
+            return 'Role: ' + step.roleText;
+        }
+        return step.approverTypeText || 'Approver';
+    }
+
+    function getModeLabel(step) {
+        if (step.modeText) return step.modeText;
+        if (step.mode === constants.EXECUTION_MODE.SERIAL) return 'Serial';
+        if (step.mode === constants.EXECUTION_MODE.PARALLEL) return 'Parallel';
+        if (step.mode === constants.EXECUTION_MODE.PARALLEL_ANY) return 'Parallel Any';
+        return '';
+    }
+
+    function loadPathSteps(pathId) {
+        if (!pathId) return [];
+
+        var SF = constants.STEP_FIELDS;
+        var pathFieldIds = [SF.PATH, 'custrecord_ps_path'];
+        var stepIds = [];
+
+        for (var i = 0; i < pathFieldIds.length && stepIds.length === 0; i++) {
+            try {
+                var stepSearch = search.create({
+                    type: constants.RECORD_TYPES.PATH_STEP,
+                    filters: [[pathFieldIds[i], 'anyof', pathId]],
+                    columns: [search.createColumn({ name: 'internalid', sort: search.Sort.ASC })]
+                });
+                stepSearch.run().each(function(result) {
+                    stepIds.push(result.id);
+                    return true;
+                });
+            } catch (err) {
+                log.debug('loadPathSteps', 'Search with ' + pathFieldIds[i] + ' failed: ' + err.message);
+            }
+        }
+
+        if (!stepIds.length) return [];
+
+        function getVal(rec, fid) {
+            try { return rec.getValue(fid); } catch (e) { return null; }
+        }
+        function getText(rec, fid) {
+            try { return rec.getText(fid); } catch (e) { return ''; }
+        }
+
+        var steps = [];
+        for (var j = 0; j < stepIds.length; j++) {
+            try {
+                var stepRec = record.load({ type: constants.RECORD_TYPES.PATH_STEP, id: stepIds[j] });
+                var isActive = getVal(stepRec, SF.ACTIVE);
+                if (isActive === false || isActive === 'F' || isActive === '0') continue;
+
+                var seq = getVal(stepRec, SF.SEQUENCE);
+                steps.push({
+                    id: stepIds[j],
+                    sequence: seq !== null && seq !== undefined ? parseInt(String(seq), 10) : (j + 1),
+                    name: getVal(stepRec, SF.NAME) || 'Step ' + (j + 1),
+                    approverType: getVal(stepRec, SF.APPROVER_TYPE),
+                    approverTypeText: getText(stepRec, SF.APPROVER_TYPE),
+                    roleText: getText(stepRec, SF.ROLE),
+                    employeeText: getText(stepRec, SF.EMPLOYEE),
+                    mode: getVal(stepRec, SF.MODE),
+                    modeText: getText(stepRec, SF.MODE)
+                });
+            } catch (err) {
+                log.warning('loadPathSteps', 'Failed to load step ' + stepIds[j] + ': ' + err.message);
+            }
+        }
+
+        steps.sort(function(a, b) { return a.sequence - b.sequence; });
+        return steps;
     }
 
     function escapeHtml(text) {

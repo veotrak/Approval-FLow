@@ -136,9 +136,9 @@ define([
             
             // Default values from global config or constants
             const defaults = {
-                poRequiredThreshold: globalConfig.poRequiredThreshold || 1000,
-                priceVariancePct: globalConfig.priceVariancePct || 5,
-                priceVarianceAmt: globalConfig.priceVarianceAmt || 500,
+                poRequiredThreshold: globalConfig.poThreshold || 1000,
+                priceVariancePct: globalConfig.priceVarPct || 5,
+                priceVarianceAmt: globalConfig.priceVarAmt || 500,
                 qtyTolerance: globalConfig.qtyTolerance || 0,
                 requireReceipt: globalConfig.requireReceiptForInventory !== false,
                 checkDuplicate: globalConfig.checkDuplicateInvoice !== false,

@@ -221,7 +221,7 @@ define([
             const globalConfig = config.getConfig();
             const token = tokenManager.generateToken();
             const expiry = new Date();
-            expiry.setHours(expiry.getHours() + (globalConfig.tokenExpiryHours || 72));
+            expiry.setHours(expiry.getHours() + (globalConfig.tokenExpiryHrs || 72));
 
             task.setValue({ fieldId: TF.TOKEN, value: token });
             task.setValue({ fieldId: TF.TOKEN_EXPIRY, value: expiry });

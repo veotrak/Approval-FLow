@@ -7,8 +7,9 @@
  */
 define([
     'N/search', 'N/record', 'N/format',
+    './p2p_config',
     '../constants/p2p_constants_v2'
-], function(search, record, format, constants) {
+], function(search, record, format, config, constants) {
     'use strict';
 
     const RT = constants.RECORD_TYPES;
@@ -129,7 +130,8 @@ define([
             }
 
             // Check max delegation duration
-            const maxDays = constants.CONFIG.MAX_DELEGATION_DAYS;
+            const cfg = config.getConfig();
+            const maxDays = cfg.maxDelegationDays || constants.CONFIG_DEFAULTS.MAX_DELEGATION_DAYS;
             const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
             if (daysDiff > maxDays) {
                 throw new Error('Delegation exceeds maximum allowed duration of ' + maxDays + ' days');

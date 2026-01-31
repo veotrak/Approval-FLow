@@ -249,7 +249,7 @@ define([
         if (recordLink) {
             rows.push('<a href="' + recordLink + '" style="display: inline-block; background-color: #111827; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold;">Open in NetSuite</a>');
         }
-        rows.push('<div style="margin-top: 10px; font-size: 12px; color: #6b7280;">Link expires in ' + config.getValue('tokenExpiryHours', 72) + ' hours.</div>');
+        rows.push('<div style="margin-top: 10px; font-size: 12px; color: #6b7280;">Link expires in ' + config.getValue('tokenExpiryHrs', 72) + ' hours.</div>');
         rows.push('</div>');
         rows.push('</div>');
         rows.push('</div>');

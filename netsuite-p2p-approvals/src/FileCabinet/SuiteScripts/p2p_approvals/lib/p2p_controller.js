@@ -275,13 +275,14 @@ define([
             task.save();
 
             // Log history (when admin acts on another's task, show admin as acting approver)
+            const historyAction = params.actionOverride || constants.APPROVAL_ACTION.APPROVE;
             historyLogger.logAction({
                 transactionType: tranType,
                 transactionId: recordId,
                 stepSequence: sequence,
                 approver: approver,
                 actingApprover: actingApprover || (isAdmin() && String(currentUser) !== String(approver) ? currentUser : null),
-                action: constants.APPROVAL_ACTION.APPROVE,
+                action: historyAction,
                 comment: params.comment,
                 method: params.method || constants.APPROVAL_METHOD.UI,
                 ipAddress: params.ipAddress
