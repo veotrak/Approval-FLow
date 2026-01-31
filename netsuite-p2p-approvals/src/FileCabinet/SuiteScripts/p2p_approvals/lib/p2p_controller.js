@@ -259,6 +259,11 @@ define([
                 stepMode = step.getValue(constants.STEP_FIELDS.MODE);
             }
 
+            if (!isTaskActiveForStep(recordType, recordId, sequence)) {
+                cancelStaleTask(params.taskId);
+                return { success: false, message: 'Task is no longer active' };
+            }
+
             // Segregation of duties check (admins can bypass)
             if (!isAdmin() && !checkSegregationOfDuties(recordType, recordId, currentUser)) {
                 return { success: false, message: 'Segregation of duties violation' };
@@ -288,9 +293,9 @@ define([
                     recordId: recordId,
                     sequence: sequence,
                     excludeTaskId: params.taskId,
-                    reason: 'Auto-cancelled - parallel any step approved by another approver',
+                    reason: 'Auto-cancelled (Parallel-Any step completed by another approver)',
                     method: params.method || constants.APPROVAL_METHOD.UI,
-                    skipHistory: true
+                    action: constants.APPROVAL_ACTION.CANCELLED
                 });
             }
 
@@ -356,6 +361,11 @@ define([
             const recordId = task.getValue(TF.TRAN_ID);
             const recordType = constants.TRANSACTION_TYPE_REVERSE[tranType];
             const sequence = task.getValue(TF.SEQUENCE);
+
+            if (!isTaskActiveForStep(recordType, recordId, sequence)) {
+                cancelStaleTask(params.taskId);
+                return { success: false, message: 'Task is no longer active' };
+            }
 
             // Update task
             task.setValue({ fieldId: TF.STATUS, value: constants.TASK_STATUS.REJECTED });
@@ -584,6 +594,36 @@ define([
             return tran.getValue('employee') || tran.getValue('requestor') || tran.getValue('createdby');
         } catch (error) {
             return null;
+        }
+    }
+
+    function isTaskActiveForStep(recordType, recordId, sequence) {
+        try {
+            const tran = record.load({ type: recordType, id: recordId });
+            const status = tran.getValue(BF.APPROVAL_STATUS);
+            const currentStep = tran.getValue(BF.CURRENT_STEP);
+            return String(status) === String(constants.APPROVAL_STATUS.PENDING_APPROVAL) &&
+                String(currentStep) === String(sequence);
+        } catch (error) {
+            log.error('isTaskActiveForStep error', error);
+            return true; // fail open to avoid blocking approvals on transient load issues
+        }
+    }
+
+    function cancelStaleTask(taskId) {
+        try {
+            record.submitFields({
+                type: constants.RECORD_TYPES.APPROVAL_TASK,
+                id: taskId,
+                values: {
+                    [TF.STATUS]: constants.TASK_STATUS.CANCELLED,
+                    [TF.COMPLETED]: new Date(),
+                    [TF.TOKEN]: '',
+                    [TF.TOKEN_EXPIRY]: ''
+                }
+            });
+        } catch (error) {
+            log.error('cancelStaleTask error', error);
         }
     }
 

@@ -82,7 +82,8 @@ define([], function() {
         REASSIGN: '7',
         COMMENT: '8',
         EXCEPTION_OVERRIDE: '9',
-        RESUBMIT: '10'
+        RESUBMIT: '10',
+        CANCELLED: '11'
     };
 
     const APPROVER_TYPE = {

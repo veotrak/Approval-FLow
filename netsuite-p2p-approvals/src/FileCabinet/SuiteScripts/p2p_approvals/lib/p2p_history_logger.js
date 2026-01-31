@@ -13,6 +13,7 @@ define([
 
     const RT = constants.RECORD_TYPES;
     const HF = constants.HISTORY_FIELDS;
+    const ADMIN_ROLE = '3';
 
     /**
      * Escape HTML for safe display
@@ -174,9 +175,15 @@ define([
 
             const results = [];
             historySearch.run().each(function(result) {
+                const actionId = result.getValue(HF.ACTION);
+                const isAdmin = String(runtime.getCurrentUser().role) === ADMIN_ROLE;
+                if (!isAdmin && String(actionId) === String(constants.APPROVAL_ACTION.CANCELLED)) {
+                    return true;
+                }
                 results.push({
                     step: result.getValue(HF.STEP_SEQUENCE),
                     action: result.getText(HF.ACTION) || result.getValue(HF.ACTION),
+                    actionId: actionId,
                     approver: result.getText(HF.ACTING_APPROVER) || result.getText(HF.APPROVER),
                     approverId: result.getValue(HF.ACTING_APPROVER) || result.getValue(HF.APPROVER),
                     originalApprover: result.getText(HF.APPROVER),
@@ -262,6 +269,7 @@ define([
         const actionLower = String(action).toLowerCase();
         if (actionLower.indexOf('approve') !== -1) return '#4CAF50';
         if (actionLower.indexOf('reject') !== -1) return '#f44336';
+        if (actionLower.indexOf('cancel') !== -1) return '#6c757d';
         if (actionLower.indexOf('escalat') !== -1) return '#FF9800';
         if (actionLower.indexOf('submit') !== -1) return '#2196F3';
         if (actionLower.indexOf('recall') !== -1) return '#9C27B0';

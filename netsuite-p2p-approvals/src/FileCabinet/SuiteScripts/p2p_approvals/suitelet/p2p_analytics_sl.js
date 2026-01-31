@@ -22,18 +22,18 @@ define([
     const ADMIN_ROLE = '3';
 
     function onRequest(context) {
-        if (context.request.method !== 'GET') {
-            return;
-        }
+        const params = context.request.parameters || {};
         const form = serverWidget.createForm({
             title: 'P2P Analytics Dashboard' + (isAdmin() ? ' (Admin)' : '')
         });
 
         addInfo(form);
-        addSummary(form);
-        addPendingByApprover(form);
-        addOldestPending(form);
-        addThroughput(form);
+        addFilters(form, params);
+        addSummary(form, params);
+        addPendingByApprover(form, params);
+        addOldestPending(form, params);
+        addThroughput(form, params);
+        form.addSubmitButton({ label: 'Apply Filters' });
 
         context.response.writePage(form);
     }
@@ -53,8 +53,42 @@ define([
             '</div>';
     }
 
-    function addSummary(form) {
-        const pending = getPendingTasks();
+    function addFilters(form, params) {
+        form.addFieldGroup({ id: 'custpage_filter_group', label: 'Filters' });
+
+        const typeField = form.addField({
+            id: 'custpage_tran_type',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Transaction Type',
+            container: 'custpage_filter_group'
+        });
+        typeField.addSelectOption({ value: '', text: 'All' });
+        typeField.addSelectOption({ value: constants.TRANSACTION_TYPES.PURCHASE_ORDER, text: 'Purchase Order' });
+        typeField.addSelectOption({ value: constants.TRANSACTION_TYPES.VENDOR_BILL, text: 'Vendor Bill' });
+        typeField.addSelectOption({ value: constants.TRANSACTION_TYPES.SALES_ORDER, text: 'Sales Order' });
+        typeField.addSelectOption({ value: constants.TRANSACTION_TYPES.INVOICE, text: 'Invoice' });
+        if (params.custpage_tran_type) typeField.defaultValue = params.custpage_tran_type;
+
+        const dateFrom = form.addField({
+            id: 'custpage_date_from',
+            type: serverWidget.FieldType.DATE,
+            label: 'Date From (Throughput)',
+            container: 'custpage_filter_group'
+        });
+        if (params.custpage_date_from) dateFrom.defaultValue = params.custpage_date_from;
+        dateFrom.setHelpText({ help: 'If empty, Throughput defaults to the last 30 days.' });
+
+        const dateTo = form.addField({
+            id: 'custpage_date_to',
+            type: serverWidget.FieldType.DATE,
+            label: 'Date To (Throughput)',
+            container: 'custpage_filter_group'
+        });
+        if (params.custpage_date_to) dateTo.defaultValue = params.custpage_date_to;
+    }
+
+    function addSummary(form, params) {
+        const pending = getPendingTasks(params);
         const bucket = bucketizeAges(pending);
 
         const total = pending.length;
@@ -77,7 +111,7 @@ define([
         }).defaultValue = html;
     }
 
-    function addPendingByApprover(form) {
+    function addPendingByApprover(form, params) {
         const sublist = form.addSublist({
             id: 'custpage_pending_by_approver',
             type: serverWidget.SublistType.LIST,
@@ -89,7 +123,7 @@ define([
 
         const searchObj = search.create({
             type: RT.APPROVAL_TASK,
-            filters: [[TF.STATUS, 'anyof', STATUS.PENDING]],
+            filters: buildPendingFilters(params),
             columns: [
                 search.createColumn({ name: TF.APPROVER, summary: search.Summary.GROUP }),
                 search.createColumn({ name: 'internalid', summary: search.Summary.COUNT })
@@ -107,7 +141,7 @@ define([
         });
     }
 
-    function addOldestPending(form) {
+    function addOldestPending(form, params) {
         const sublist = form.addSublist({
             id: 'custpage_oldest_pending',
             type: serverWidget.SublistType.LIST,
@@ -121,7 +155,7 @@ define([
 
         const searchObj = search.create({
             type: RT.APPROVAL_TASK,
-            filters: [[TF.STATUS, 'anyof', STATUS.PENDING]],
+            filters: buildPendingFilters(params),
             columns: [
                 'internalid',
                 TF.TRAN_TYPE,
@@ -157,26 +191,41 @@ define([
         });
     }
 
-    function addThroughput(form) {
+    function addThroughput(form, params) {
         const sublist = form.addSublist({
             id: 'custpage_throughput',
             type: serverWidget.SublistType.LIST,
-            label: 'Throughput (Last 30 Days)'
+            label: 'Throughput'
         });
         sublist.addField({ id: 'action', type: serverWidget.FieldType.TEXT, label: 'Action' });
         sublist.addField({ id: 'count', type: serverWidget.FieldType.INTEGER, label: 'Count' });
 
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const dateStr = format.format({ value: thirtyDaysAgo, type: format.Type.DATE });
+        const dateFromParam = params && params.custpage_date_from ? params.custpage_date_from : null;
+        const dateToParam = params && params.custpage_date_to ? params.custpage_date_to : null;
+        let dateFrom = dateFromParam;
+        if (!dateFrom) {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            dateFrom = format.format({ value: thirtyDaysAgo, type: format.Type.DATE });
+        }
+        const dateTo = dateToParam || null;
+
+        const filters = [
+            [HF.ACTION, 'anyof', [ACTION.APPROVE, ACTION.REJECT]]
+        ];
+        if (dateFrom) {
+            filters.push('and', [HF.TIMESTAMP, 'onorafter', dateFrom]);
+        }
+        if (dateTo) {
+            filters.push('and', [HF.TIMESTAMP, 'onorbefore', dateTo]);
+        }
+        if (params && params.custpage_tran_type) {
+            filters.push('and', [HF.TRAN_TYPE, 'anyof', params.custpage_tran_type]);
+        }
 
         const searchObj = search.create({
             type: RT.APPROVAL_HISTORY,
-            filters: [
-                [HF.ACTION, 'anyof', [ACTION.APPROVE, ACTION.REJECT]],
-                'and',
-                [HF.TIMESTAMP, 'onorafter', dateStr]
-            ],
+            filters: filters,
             columns: [
                 search.createColumn({ name: HF.ACTION, summary: search.Summary.GROUP }),
                 search.createColumn({ name: 'internalid', summary: search.Summary.COUNT })
@@ -194,11 +243,11 @@ define([
         });
     }
 
-    function getPendingTasks() {
+    function getPendingTasks(params) {
         const tasks = [];
         const searchObj = search.create({
             type: RT.APPROVAL_TASK,
-            filters: [[TF.STATUS, 'anyof', STATUS.PENDING]],
+            filters: buildPendingFilters(params),
             columns: [TF.CREATED]
         });
         searchObj.run().each(function(result) {
@@ -255,6 +304,14 @@ define([
         } catch (e) {
             // ignore optional set errors
         }
+    }
+
+    function buildPendingFilters(params) {
+        const filters = [[TF.STATUS, 'anyof', STATUS.PENDING]];
+        if (params && params.custpage_tran_type) {
+            filters.push('and', [TF.TRAN_TYPE, 'anyof', params.custpage_tran_type]);
+        }
+        return filters;
     }
 
     return { onRequest: onRequest };

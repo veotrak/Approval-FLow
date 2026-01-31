@@ -120,6 +120,10 @@ define([
                 return { success: true, status: 'already_advanced' };
             }
 
+            if (hasPendingTasksForSequence(params.tranType, params.recordId, params.currentSequence)) {
+                return { success: true, status: 'pending_parallel' };
+            }
+
             if (hasPendingTasksForSequence(params.tranType, params.recordId, nextStep.sequence)) {
                 return { success: true, status: 'already_advanced' };
             }

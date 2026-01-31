@@ -294,6 +294,7 @@ All custom lists and their value internal IDs must match the constants in `p2p_c
 | 8 | Comment Added |
 | 9 | Exception Override |
 | 10 | Resubmitted |
+| 11 | Auto-Cancelled (Parallel-Any) |
 
 ### P2P Approval Method (`customlist_p2p_approval_method`)
 
