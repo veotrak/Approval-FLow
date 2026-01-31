@@ -167,8 +167,8 @@ define([], function() {
         SALES_REP: 'custrecord_p2p_dr_sales_rep',
         PROJECT: 'custrecord_p2p_dr_project',
         CLASS: 'custrecord_p2p_dr_class',
-        CUSTOM_SEG_FIELD: 'custrecord_p2p_dr_cseg_field',
-        CUSTOM_SEG_VALUES: 'custrecord_p2p_dr_cseg_values',
+        CUSTOM_SEG_FIELD: 'custrecord_p2p_dr_customseg_field',
+        CUSTOM_SEG_VALUES: 'custrecord_p2p_dr_customseg_values',
         PRIORITY: 'custrecord_dr_priority',  // verified: your account uses this (no p2p prefix)
         PATH: 'custrecord_p2p_dr_path',
         EFF_FROM: 'custrecord_p2p_dr_eff_from',

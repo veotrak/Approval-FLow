@@ -33,13 +33,7 @@ define([
         addInfo(form);
         addRuleFields(form, options);
         addPathPreview(form, options);
-        if (options && options.messageHtml) {
-            form.addField({
-                id: 'custpage_msg',
-                type: serverWidget.FieldType.INLINEHTML,
-                label: ' '
-            }).defaultValue = options.messageHtml;
-        }
+        addResults(form, options);
 
         form.addSubmitButton({ label: 'Create Rule' });
         context.response.writePage(form);
@@ -231,6 +225,9 @@ define([
             label: 'Custom Segment Field ID (optional)',
             container: 'custpage_criteria_group'
         });
+        csegField.setHelpText({
+            help: 'Enter the transaction body field ID (e.g., custbody_cseg_region). Do not use _cseg or customrecord_cseg IDs.'
+        });
         if (values.customSegField) csegField.defaultValue = values.customSegField;
 
         const csegValues = form.addField({
@@ -238,6 +235,9 @@ define([
             type: serverWidget.FieldType.TEXT,
             label: 'Custom Segment Values (comma-separated internal IDs)',
             container: 'custpage_criteria_group'
+        });
+        csegValues.setHelpText({
+            help: 'Comma-separated internal IDs of the custom segment values.'
         });
         if (values.customSegValues) csegValues.defaultValue = values.customSegValues;
 
@@ -278,6 +278,26 @@ define([
             label: ' ',
             container: 'custpage_preview_group'
         }).defaultValue = previewHtml;
+    }
+
+    function addResults(form, options) {
+        if (!options || !options.messageHtml) return;
+
+        form.addFieldGroup({ id: 'custpage_result_group', label: 'Results' });
+        const resultField = form.addField({
+            id: 'custpage_results',
+            type: serverWidget.FieldType.INLINEHTML,
+            label: ' ',
+            container: 'custpage_result_group'
+        });
+        resultField.defaultValue = options.messageHtml;
+
+        try {
+            resultField.updateBreakType({ breakType: serverWidget.FieldBreakType.STARTROW });
+            resultField.updateLayoutType({ layoutType: serverWidget.FieldLayoutType.OUTSIDE });
+        } catch (e) {
+            // ignore layout errors for older UI configs
+        }
     }
 
     function handleSubmit(context) {
@@ -489,6 +509,18 @@ define([
 
         if ((values.customSegField && !values.customSegValues) || (!values.customSegField && values.customSegValues)) {
             errors.push('Custom Segment Field ID and Values must both be provided.');
+        }
+        if (values.customSegField) {
+            const csegFieldId = String(values.customSegField).trim();
+            if (/^_cseg/i.test(csegFieldId)) {
+                errors.push('Custom Segment Field ID must be a transaction field (custbody_cseg_...). IDs starting with _cseg are reserved.');
+            }
+            if (/^customrecord_cseg_/i.test(csegFieldId) || /^cseg_/i.test(csegFieldId)) {
+                errors.push('Custom Segment Field ID must be the transaction field (custbody_cseg_*), not the segment record ID.');
+            }
+            if (/^custcol_cseg_/i.test(csegFieldId)) {
+                errors.push('Line-level custom segment fields (custcol_cseg_*) are not supported. Use a body-level field (custbody_cseg_*).');
+            }
         }
 
         return errors;

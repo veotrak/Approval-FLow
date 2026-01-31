@@ -451,13 +451,15 @@ If you see errors like `SSS_INVALID_SRCH_COL` or `invalid column`, your field ID
 | `SALES_REP` | `custrecord_p2p_dr_sales_rep` | List/Record (Employee) |
 | `PROJECT` | `custrecord_p2p_dr_project` | List/Record (Project/Job) |
 | `CLASS` | `custrecord_p2p_dr_class` | List/Record (Class) |
-| `CUSTOM_SEG_FIELD` | `custrecord_p2p_dr_cseg_field` | Free-Form Text (field ID) |
-| `CUSTOM_SEG_VALUES` | `custrecord_p2p_dr_cseg_values` | Free-Form Text (comma-separated IDs) |
+| `CUSTOM_SEG_FIELD` | `custrecord_p2p_dr_customseg_field` | Free-Form Text (field ID) |
+| `CUSTOM_SEG_VALUES` | `custrecord_p2p_dr_customseg_values` | Free-Form Text (comma-separated IDs) |
 | `PRIORITY` | `custrecord_dr_priority` | Integer Number |
 | `PATH` | `custrecord_p2p_dr_path` | List/Record (P2P Approval Path) |
 | `EFF_FROM` | `custrecord_p2p_dr_eff_from` | Date |
 | `EFF_TO` | `custrecord_p2p_dr_eff_to` | Date |
 | `ACTIVE` | `custrecord_p2p_dr_active` | Check Box |
+
+Note: For `CUSTOM_SEG_FIELD`, enter the transaction body field ID (for example `custbody_cseg_region`). If your account blocks IDs containing `_cseg`, use the `customseg` IDs above for the decision rule fields (they avoid the reserved prefix).
 
 ### P2P Global Config (`customrecord_p2p_global_config`) – Verified Field IDs
 
