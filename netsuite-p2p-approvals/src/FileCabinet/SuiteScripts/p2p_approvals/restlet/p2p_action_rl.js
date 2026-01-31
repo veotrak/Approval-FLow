@@ -113,7 +113,7 @@ define([
     /**
      * Handle approve action - find task and delegate to controller
      */
-    function handleApproveAction(recordType, recordId, comment) {
+    function handleApproveAction(recordType, recordId, comment, actionOverride) {
         const taskId = controller.findPendingTaskForUser(recordType, recordId);
         
         if (!taskId) {
@@ -125,7 +125,8 @@ define([
                     return controller.handleApprove({
                         taskId: anyTask,
                         comment: comment,
-                        method: constants.APPROVAL_METHOD.UI
+                        method: constants.APPROVAL_METHOD.UI,
+                        actionOverride: actionOverride
                     });
                 }
             }
@@ -135,7 +136,8 @@ define([
         return controller.handleApprove({
             taskId: taskId,
             comment: comment,
-            method: constants.APPROVAL_METHOD.UI
+            method: constants.APPROVAL_METHOD.UI,
+            actionOverride: actionOverride
         });
     }
 
@@ -235,7 +237,12 @@ define([
             }
         });
 
-        return handleApproveAction(recordType, recordId, 'Exception Override: ' + comment);
+        return handleApproveAction(
+            recordType,
+            recordId,
+            'Exception Override: ' + comment,
+            constants.APPROVAL_ACTION.EXCEPTION_OVERRIDE
+        );
     }
 
     /**
