@@ -6,13 +6,14 @@
  * P2P Invoice User Event
  */
 define([
-    'N/record', 'N/runtime', 'N/ui/serverWidget',
+    'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/search', 'N/format',
     '../lib/p2p_controller', '../lib/p2p_history_logger',
     '../constants/p2p_constants_v2'
-], function(record, runtime, serverWidget, controller, historyLogger, constants) {
+], function(record, runtime, serverWidget, search, format, controller, historyLogger, constants) {
     'use strict';
 
     const BF = constants.BODY_FIELDS;
+    const DETAILS_SUBTAB_ID = 'custom1904';
 
     function beforeLoad(context) {
         try {
@@ -88,28 +89,30 @@ define([
 
             var matchReason = rec.getValue(BF.MATCH_REASON);
             var routingHtml = matchReason ? buildExplainHtml(rec) : '';
+            var pathHtml = buildPathSummaryHtml(rec);
 
             var content = '<div>';
             if (routingHtml) {
                 content += '<div style="margin-bottom: 20px;">' + routingHtml + '</div>';
             }
+            if (pathHtml) {
+                content += '<div style="margin-bottom: 20px;">' + pathHtml + '</div>';
+            }
             content += historyHtml;
             content += '</div>';
-
-            var tabId = 'custpage_p2p_approval_tab';
-            form.addTab({ id: tabId, label: 'P2P Approval' });
 
             var historyField = form.addField({
                 id: 'custpage_p2p_history',
                 type: serverWidget.FieldType.INLINEHTML,
                 label: 'Approval History',
-                container: tabId
+                container: DETAILS_SUBTAB_ID
             });
             historyField.defaultValue = content || '';
         } catch (error) {
             log.error('addHistorySection error', error);
         }
     }
+
 
     function addActionButtons(form, rec) {
         const status = rec.getValue(BF.APPROVAL_STATUS);
@@ -184,6 +187,236 @@ define([
 
         html += '</div>';
         return html;
+    }
+
+
+    /**
+     * Build approval chain HTML (full path steps)
+     */
+    function buildPathSummaryHtml(rec) {
+        var pathId = rec.getValue(BF.APPROVAL_PATH);
+        if (!pathId) return '';
+
+        var steps = loadPathSteps(pathId);
+        if (!steps.length) return '';
+
+        var currentStep = rec.getValue(BF.CURRENT_STEP);
+        var status = rec.getValue(BF.APPROVAL_STATUS);
+
+        var cardStyle = 'padding: 16px; background: #fff; border: 1px solid #e9ecef; border-radius: 6px;';
+        var thStyle = 'text-align: left; padding: 8px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; border-bottom: 1px solid #e9ecef;';
+        var tdStyle = 'padding: 8px 6px; font-size: 13px; color: #212529; border-bottom: 1px solid #f1f3f5;';
+
+        var html = '<div style="' + cardStyle + '">';
+        html += '<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px;">';
+        html += '<div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d;">Approval Chain</div>';
+        html += '<div style="font-size: 12px; color: #495057;">' + buildChainHeader(steps, currentStep, status) + '</div>';
+        html += '</div>';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr>';
+        html += '<th style="' + thStyle + ' width: 60px;">Step</th>';
+        html += '<th style="' + thStyle + '">Approver</th>';
+        html += '<th style="' + thStyle + ' width: 110px;">Mode</th>';
+        html += '<th style="' + thStyle + ' width: 90px;">Status</th>';
+        html += '</tr></thead><tbody>';
+
+        steps.forEach(function(step, idx) {
+            var isLast = idx === steps.length - 1;
+            var rowTd = isLast ? tdStyle.replace('border-bottom: 1px solid #f1f3f5;', '') : tdStyle;
+            var approverLabel = getApproverLabel(step);
+            var modeLabel = getModeLabel(step);
+            var stepStatus = getStepStatusLabel(step.sequence, currentStep, status);
+            html += '<tr>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(step.sequence) + '</td>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(step.name) + ' — ' + escapeHtml(approverLabel) + '</td>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(modeLabel) + '</td>';
+            html += '<td style="' + rowTd + '">' + escapeHtml(stepStatus) + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    function buildChainHeader(steps, currentStep, status) {
+        if (!steps || !steps.length) return '';
+        if (status === constants.APPROVAL_STATUS.APPROVED) {
+            return '<strong>Current:</strong> Approved';
+        }
+        if (status === constants.APPROVAL_STATUS.REJECTED) {
+            return '<strong>Current:</strong> Rejected';
+        }
+
+        var curSeq = parseInt(currentStep, 10);
+        var current = null;
+        var next = null;
+
+        for (var i = 0; i < steps.length; i++) {
+            var seq = parseInt(steps[i].sequence, 10);
+            if (curSeq && seq === curSeq) {
+                current = steps[i];
+                if (i + 1 < steps.length) next = steps[i + 1];
+                break;
+            }
+            if (!curSeq && !current) {
+                current = steps[0];
+                if (steps.length > 1) next = steps[1];
+                break;
+            }
+        }
+
+        if (!current) {
+            current = steps[0];
+            if (steps.length > 1) next = steps[1];
+        }
+
+        var currentLabel = current ? (current.name + ' — ' + getApproverLabel(current)) : '—';
+        var nextLabel = next ? (next.name + ' — ' + getApproverLabel(next)) : '—';
+        var header = '<strong>Current:</strong> ' + escapeHtml(currentLabel) + '&nbsp;&nbsp;<strong>Next:</strong> ' + escapeHtml(nextLabel);
+        var slaSummary = buildSlaSummary(steps, currentStep, status);
+        if (slaSummary) {
+            header += '&nbsp;&nbsp;<span style="color: #6c757d;">' + escapeHtml(slaSummary) + '</span>';
+        }
+        return header;
+    }
+
+    function buildSlaSummary(steps, currentStep, status) {
+        if (!steps || !steps.length) return '';
+        if (status === constants.APPROVAL_STATUS.APPROVED || status === constants.APPROVAL_STATUS.REJECTED) {
+            return '';
+        }
+
+        var curSeq = parseInt(currentStep, 10);
+        var currentIndex = 0;
+        for (var i = 0; i < steps.length; i++) {
+            var seq = parseInt(steps[i].sequence, 10);
+            if (curSeq && seq === curSeq) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        var total = 0;
+        var hasAny = false;
+        var currentSla = null;
+        for (var j = currentIndex; j < steps.length; j++) {
+            var sla = steps[j].slaHours;
+            if (sla !== null && sla !== undefined && !isNaN(parseInt(sla, 10))) {
+                var hrs = parseInt(sla, 10);
+                total += hrs;
+                hasAny = true;
+                if (j === currentIndex) {
+                    currentSla = hrs;
+                }
+            }
+        }
+
+        if (!hasAny) return '';
+
+        var parts = [];
+        if (currentSla !== null) parts.push('Current SLA: ' + currentSla + 'h');
+        if (total) parts.push('SLA remaining: ' + total + 'h');
+        if (total) {
+            var eta = new Date();
+            eta.setHours(eta.getHours() + total);
+            try {
+                parts.push('Est. completion: ' + format.format({ value: eta, type: format.Type.DATETIME }));
+            } catch (e) {
+                parts.push('Est. completion: ' + eta.toISOString());
+            }
+        }
+        return parts.join(' | ');
+    }
+
+    function getStepStatusLabel(stepSeq, currentStep, status) {
+        if (status === constants.APPROVAL_STATUS.APPROVED) return 'Approved';
+        if (status === constants.APPROVAL_STATUS.REJECTED) return 'Rejected';
+        if (!currentStep) return 'Pending';
+        var seqNum = parseInt(stepSeq, 10);
+        var curNum = parseInt(currentStep, 10);
+        if (seqNum < curNum) return 'Done';
+        if (seqNum === curNum) return 'Current';
+        return 'Pending';
+    }
+
+    function getApproverLabel(step) {
+        if (step.approverType === constants.APPROVER_TYPE.NAMED_PERSON && step.employeeText) {
+            return step.employeeText;
+        }
+        if (step.approverType === constants.APPROVER_TYPE.ROLE && step.roleText) {
+            return 'Role: ' + step.roleText;
+        }
+        return step.approverTypeText || 'Approver';
+    }
+
+    function getModeLabel(step) {
+        if (step.modeText) return step.modeText;
+        if (step.mode === constants.EXECUTION_MODE.SERIAL) return 'Serial';
+        if (step.mode === constants.EXECUTION_MODE.PARALLEL) return 'Parallel';
+        if (step.mode === constants.EXECUTION_MODE.PARALLEL_ANY) return 'Parallel Any';
+        return '';
+    }
+
+    function loadPathSteps(pathId) {
+        if (!pathId) return [];
+
+        var SF = constants.STEP_FIELDS;
+        var pathFieldIds = [SF.PATH, 'custrecord_ps_path'];
+        var stepIds = [];
+
+        for (var i = 0; i < pathFieldIds.length && stepIds.length === 0; i++) {
+            try {
+                var stepSearch = search.create({
+                    type: constants.RECORD_TYPES.PATH_STEP,
+                    filters: [[pathFieldIds[i], 'anyof', pathId]],
+                    columns: [search.createColumn({ name: 'internalid', sort: search.Sort.ASC })]
+                });
+                stepSearch.run().each(function(result) {
+                    stepIds.push(result.id);
+                    return true;
+                });
+            } catch (err) {
+                log.debug('loadPathSteps', 'Search with ' + pathFieldIds[i] + ' failed: ' + err.message);
+            }
+        }
+
+        if (!stepIds.length) return [];
+
+        function getVal(rec, fid) {
+            try { return rec.getValue(fid); } catch (e) { return null; }
+        }
+        function getText(rec, fid) {
+            try { return rec.getText(fid); } catch (e) { return ''; }
+        }
+
+        var steps = [];
+        for (var j = 0; j < stepIds.length; j++) {
+            try {
+                var stepRec = record.load({ type: constants.RECORD_TYPES.PATH_STEP, id: stepIds[j] });
+                var isActive = getVal(stepRec, SF.ACTIVE);
+                if (isActive === false || isActive === 'F' || isActive === '0') continue;
+
+                var seq = getVal(stepRec, SF.SEQUENCE);
+                var slaVal = getVal(stepRec, SF.SLA_HOURS);
+                steps.push({
+                    id: stepIds[j],
+                    sequence: seq !== null && seq !== undefined ? parseInt(String(seq), 10) : (j + 1),
+                    name: getVal(stepRec, SF.NAME) || 'Step ' + (j + 1),
+                    approverType: getVal(stepRec, SF.APPROVER_TYPE),
+                    approverTypeText: getText(stepRec, SF.APPROVER_TYPE),
+                    roleText: getText(stepRec, SF.ROLE),
+                    employeeText: getText(stepRec, SF.EMPLOYEE),
+                    mode: getVal(stepRec, SF.MODE),
+                    modeText: getText(stepRec, SF.MODE),
+                    slaHours: slaVal !== null && slaVal !== undefined ? parseInt(String(slaVal), 10) : null
+                });
+            } catch (err) {
+                log.warning('loadPathSteps', 'Failed to load step ' + stepIds[j] + ': ' + err.message);
+            }
+        }
+
+        steps.sort(function(a, b) { return a.sequence - b.sequence; });
+        return steps;
     }
 
     function escapeHtml(text) {

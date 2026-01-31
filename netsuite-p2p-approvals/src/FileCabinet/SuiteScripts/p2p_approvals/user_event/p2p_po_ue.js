@@ -6,23 +6,26 @@
  * P2P PO User Event (v2 - Decision Table Architecture)
  */
 define([
-    'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/search',
+    'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/search', 'N/format', 'N/file',
     '../lib/p2p_controller', '../lib/p2p_config', '../lib/p2p_history_logger',
     '../constants/p2p_constants_v2'
 ], function(
-    record, runtime, serverWidget, search,
+    record, runtime, serverWidget, search, format, file,
     controller, config, historyLogger, constants
 ) {
     'use strict';
 
     const BF = constants.BODY_FIELDS;
+    const DETAILS_SUBTAB_ID = 'custom1904';
+    const CLIENT_MODULE_PATH = '../client/p2p_po_cs.js';
+    const CLIENT_FILE_PATH = '/SuiteScripts/p2p_approvals/client/p2p_po_cs.js';
 
     function beforeLoad(context) {
         try {
             const form = context.form;
             const rec = context.newRecord;
 
-            form.clientScriptModulePath = '../client/p2p_po_cs.js';
+            setClientScript(form);
 
             if (context.type === context.UserEventType.VIEW || context.type === context.UserEventType.EDIT) {
                 addHistorySection(form, rec);
@@ -95,6 +98,18 @@ define([
         }
     }
 
+    function setClientScript(form) {
+        try {
+            file.load({ id: CLIENT_FILE_PATH });
+            form.clientScriptModulePath = CLIENT_MODULE_PATH;
+        } catch (error) {
+            log.error('P2P PO client script missing', {
+                path: CLIENT_FILE_PATH,
+                error: error
+            });
+        }
+    }
+
     function addHistorySection(form, rec) {
         try {
             if (!rec.id) {
@@ -125,20 +140,18 @@ define([
             content += '<div style="margin-top: ' + (routingHtml ? '0' : '0') + ';">' + historyHtml + '</div>';
             content += '</div>';
 
-            var tabId = 'custpage_p2p_approval_tab';
-            form.addTab({ id: tabId, label: 'P2P Approval' });
-
             var historyField = form.addField({
                 id: 'custpage_p2p_history',
                 type: serverWidget.FieldType.INLINEHTML,
                 label: 'Approval History',
-                container: tabId
+                container: DETAILS_SUBTAB_ID
             });
             historyField.defaultValue = content || '';
         } catch (error) {
             log.error('addHistorySection error', error);
         }
     }
+
 
     /**
      * Handle PO edit - check if re-approval is needed
@@ -382,6 +395,7 @@ define([
         return html;
     }
 
+
     /**
      * Build approval chain HTML (full path steps)
      */
@@ -465,7 +479,60 @@ define([
         var currentLabel = current ? (current.name + ' — ' + getApproverLabel(current)) : '—';
         var nextLabel = next ? (next.name + ' — ' + getApproverLabel(next)) : '—';
 
-        return '<strong>Current:</strong> ' + escapeHtml(currentLabel) + '&nbsp;&nbsp;<strong>Next:</strong> ' + escapeHtml(nextLabel);
+        var header = '<strong>Current:</strong> ' + escapeHtml(currentLabel) + '&nbsp;&nbsp;<strong>Next:</strong> ' + escapeHtml(nextLabel);
+        var slaSummary = buildSlaSummary(steps, currentStep, status);
+        if (slaSummary) {
+            header += '&nbsp;&nbsp;<span style="color: #6c757d;">' + escapeHtml(slaSummary) + '</span>';
+        }
+        return header;
+    }
+
+    function buildSlaSummary(steps, currentStep, status) {
+        if (!steps || !steps.length) return '';
+        if (status === constants.APPROVAL_STATUS.APPROVED || status === constants.APPROVAL_STATUS.REJECTED) {
+            return '';
+        }
+
+        var curSeq = parseInt(currentStep, 10);
+        var currentIndex = 0;
+        for (var i = 0; i < steps.length; i++) {
+            var seq = parseInt(steps[i].sequence, 10);
+            if (curSeq && seq === curSeq) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        var total = 0;
+        var hasAny = false;
+        var currentSla = null;
+        for (var j = currentIndex; j < steps.length; j++) {
+            var sla = steps[j].slaHours;
+            if (sla !== null && sla !== undefined && !isNaN(parseInt(sla, 10))) {
+                var hrs = parseInt(sla, 10);
+                total += hrs;
+                hasAny = true;
+                if (j === currentIndex) {
+                    currentSla = hrs;
+                }
+            }
+        }
+
+        if (!hasAny) return '';
+
+        var parts = [];
+        if (currentSla !== null) parts.push('Current SLA: ' + currentSla + 'h');
+        if (total) parts.push('SLA remaining: ' + total + 'h');
+        if (total) {
+            var eta = new Date();
+            eta.setHours(eta.getHours() + total);
+            try {
+                parts.push('Est. completion: ' + format.format({ value: eta, type: format.Type.DATETIME }));
+            } catch (e) {
+                parts.push('Est. completion: ' + eta.toISOString());
+            }
+        }
+        return parts.join(' | ');
     }
 
     function getStepStatusLabel(stepSeq, currentStep, status) {
@@ -537,6 +604,7 @@ define([
                 if (isActive === false || isActive === 'F' || isActive === '0') continue;
 
                 var seq = getVal(stepRec, SF.SEQUENCE);
+                var slaVal = getVal(stepRec, SF.SLA_HOURS);
                 steps.push({
                     id: stepIds[j],
                     sequence: seq !== null && seq !== undefined ? parseInt(String(seq), 10) : (j + 1),
@@ -546,7 +614,8 @@ define([
                     roleText: getText(stepRec, SF.ROLE),
                     employeeText: getText(stepRec, SF.EMPLOYEE),
                     mode: getVal(stepRec, SF.MODE),
-                    modeText: getText(stepRec, SF.MODE)
+                    modeText: getText(stepRec, SF.MODE),
+                    slaHours: slaVal !== null && slaVal !== undefined ? parseInt(String(slaVal), 10) : null
                 });
             } catch (err) {
                 log.warning('loadPathSteps', 'Failed to load step ' + stepIds[j] + ': ' + err.message);
