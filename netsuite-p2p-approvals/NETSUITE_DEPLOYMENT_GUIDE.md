@@ -42,18 +42,18 @@ Upload each file to the **exact** path shown. In NetSuite: **Customization > Scr
 | 16 | `SuiteScripts/p2p_approvals/suitelet/p2p_config_portal_sl.js` | `suitelet/p2p_config_portal_sl.js` |
 | 17 | `SuiteScripts/p2p_approvals/suitelet/p2p_analytics_sl.js` | `suitelet/p2p_analytics_sl.js` |
 | 18 | `SuiteScripts/p2p_approvals/suitelet/p2p_rule_builder_sl.js` | `suitelet/p2p_rule_builder_sl.js` |
-| 18 | `SuiteScripts/p2p_approvals/user_event/p2p_po_ue.js` | `user_event/p2p_po_ue.js` |
-| 19 | `SuiteScripts/p2p_approvals/user_event/p2p_vb_ue.js` | `user_event/p2p_vb_ue.js` |
-| 20 | `SuiteScripts/p2p_approvals/user_event/p2p_so_ue.js` | `user_event/p2p_so_ue.js` |
-| 21 | `SuiteScripts/p2p_approvals/user_event/p2p_inv_ue.js` | `user_event/p2p_inv_ue.js` |
-| 22 | `SuiteScripts/p2p_approvals/client/p2p_po_cs.js` | `client/p2p_po_cs.js` |
-| 23 | `SuiteScripts/p2p_approvals/client/p2p_vb_cs.js` | `client/p2p_vb_cs.js` |
-| 24 | `SuiteScripts/p2p_approvals/client/p2p_so_cs.js` | `client/p2p_so_cs.js` |
-| 25 | `SuiteScripts/p2p_approvals/client/p2p_inv_cs.js` | `client/p2p_inv_cs.js` |
-| 26 | `SuiteScripts/p2p_approvals/client/p2p_bulk_approval_cs.js` | `client/p2p_bulk_approval_cs.js` |
-| 27 | `SuiteScripts/p2p_approvals/scheduled/p2p_escalation_ss.js` | `scheduled/p2p_escalation_ss.js` |
-| 28 | `SuiteScripts/p2p_approvals/scheduled/p2p_reminder_ss.js` | `scheduled/p2p_reminder_ss.js` |
-| 29 | `SuiteScripts/p2p_approvals/scheduled/p2p_migration_ss.js` | `scheduled/p2p_migration_ss.js` |
+| 19 | `SuiteScripts/p2p_approvals/user_event/p2p_po_ue.js` | `user_event/p2p_po_ue.js` |
+| 20 | `SuiteScripts/p2p_approvals/user_event/p2p_vb_ue.js` | `user_event/p2p_vb_ue.js` |
+| 21 | `SuiteScripts/p2p_approvals/user_event/p2p_so_ue.js` | `user_event/p2p_so_ue.js` |
+| 22 | `SuiteScripts/p2p_approvals/user_event/p2p_inv_ue.js` | `user_event/p2p_inv_ue.js` |
+| 24 | `SuiteScripts/p2p_approvals/client/p2p_po_cs.js` | `client/p2p_po_cs.js` |
+| 25 | `SuiteScripts/p2p_approvals/client/p2p_vb_cs.js` | `client/p2p_vb_cs.js` |
+| 26 | `SuiteScripts/p2p_approvals/client/p2p_so_cs.js` | `client/p2p_so_cs.js` |
+| 27 | `SuiteScripts/p2p_approvals/client/p2p_inv_cs.js` | `client/p2p_inv_cs.js` |
+| 28 | `SuiteScripts/p2p_approvals/client/p2p_bulk_approval_cs.js` | `client/p2p_bulk_approval_cs.js` |
+| 30 | `SuiteScripts/p2p_approvals/scheduled/p2p_escalation_ss.js` | `scheduled/p2p_escalation_ss.js` |
+| 31 | `SuiteScripts/p2p_approvals/scheduled/p2p_reminder_ss.js` | `scheduled/p2p_reminder_ss.js` |
+| 32 | `SuiteScripts/p2p_approvals/scheduled/p2p_migration_ss.js` | `scheduled/p2p_migration_ss.js` |
 
 ---
 

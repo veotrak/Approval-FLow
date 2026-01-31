@@ -108,7 +108,7 @@ define([
             }
 
             const newToken = generateToken();
-            const expiryHours = config.getValue('tokenExpiryHours', constants.CONFIG.TOKEN_EXPIRY_HOURS);
+            const expiryHours = config.getValue('tokenExpiryHours', constants.CONFIG_DEFAULTS.TOKEN_EXPIRY_HRS);
             
             const expiry = new Date();
             expiry.setHours(expiry.getHours() + expiryHours);

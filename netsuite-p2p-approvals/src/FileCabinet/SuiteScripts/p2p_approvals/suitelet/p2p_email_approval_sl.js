@@ -59,33 +59,48 @@ define([
 
         // Get transaction details
         const summary = getTransactionSummary(validation);
+        const recordType = getRecordTypeFromTranType(validation.transactionType);
+        const recordLink = buildRecordLink(recordType, validation.transactionId);
 
         // Build info display
-        let infoHtml = '<div style="padding: 20px; background: #f5f5f5; border-radius: 8px; margin-bottom: 20px;">';
-        infoHtml += '<h2 style="margin: 0 0 15px 0; color: #333;">Transaction Details</h2>';
-        infoHtml += '<table style="width: 100%;">';
-        infoHtml += '<tr><td style="padding: 5px 10px 5px 0; font-weight: bold;">Type:</td><td>' + escapeHtml(summary.typeLabel) + '</td></tr>';
-        infoHtml += '<tr><td style="padding: 5px 10px 5px 0; font-weight: bold;">Transaction #:</td><td>' + escapeHtml(summary.tranId) + '</td></tr>';
+        let infoHtml = '<div style="font-family: Arial, sans-serif; background: #f6f7f9; padding: 24px;">';
+        infoHtml += '<div style="max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">';
+        infoHtml += '<div style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb;">';
+        infoHtml += '<div style="font-size: 18px; font-weight: bold; color: #111827;">Transaction Details</div>';
+        infoHtml += '<div style="margin-top: 6px; color: #6b7280; font-size: 13px;">Review the details before confirming.</div>';
+        infoHtml += '</div>';
+
+        infoHtml += '<div style="padding: 20px 24px;">';
+        infoHtml += '<table style="width: 100%; border-collapse: collapse;">';
+        infoHtml += '<tr><td style="padding: 6px 0; color: #6b7280; width: 140px;">Type</td><td style="padding: 6px 0; color: #111827;">' + escapeHtml(summary.typeLabel) + '</td></tr>';
+        infoHtml += '<tr><td style="padding: 6px 0; color: #6b7280;">Transaction #</td><td style="padding: 6px 0; color: #111827;">' + escapeHtml(summary.tranId) + '</td></tr>';
         
         if (summary.entity) {
-            infoHtml += '<tr><td style="padding: 5px 10px 5px 0; font-weight: bold;">Vendor/Entity:</td><td>' + escapeHtml(summary.entity) + '</td></tr>';
+            infoHtml += '<tr><td style="padding: 6px 0; color: #6b7280;">Vendor/Entity</td><td style="padding: 6px 0; color: #111827;">' + escapeHtml(summary.entity) + '</td></tr>';
         }
         if (summary.total) {
-            infoHtml += '<tr><td style="padding: 5px 10px 5px 0; font-weight: bold;">Amount:</td><td>$' + escapeHtml(summary.total) + '</td></tr>';
+            infoHtml += '<tr><td style="padding: 6px 0; color: #6b7280;">Amount</td><td style="padding: 6px 0; color: #111827;">$' + escapeHtml(summary.total) + '</td></tr>';
         }
         if (summary.date) {
-            infoHtml += '<tr><td style="padding: 5px 10px 5px 0; font-weight: bold;">Date:</td><td>' + escapeHtml(summary.date) + '</td></tr>';
+            infoHtml += '<tr><td style="padding: 6px 0; color: #6b7280;">Date</td><td style="padding: 6px 0; color: #111827;">' + escapeHtml(summary.date) + '</td></tr>';
         }
         
         infoHtml += '</table>';
         infoHtml += '</div>';
 
-        // Action-specific message
+        infoHtml += '<div style="padding: 14px 24px; border-top: 1px solid #e5e7eb; background: #fafafa;">';
         if (action === 'approve') {
-            infoHtml += '<p style="color: #4CAF50; font-size: 16px;">You are about to <strong>APPROVE</strong> this transaction.</p>';
+            infoHtml += '<div style="color: #16a34a; font-size: 14px; font-weight: bold;">You are about to APPROVE this transaction.</div>';
         } else {
-            infoHtml += '<p style="color: #f44336; font-size: 16px;">You are about to <strong>REJECT</strong> this transaction.</p>';
+            infoHtml += '<div style="color: #dc2626; font-size: 14px; font-weight: bold;">You are about to REJECT this transaction.</div>';
         }
+        if (recordLink) {
+            infoHtml += '<div style="margin-top: 8px;"><a href="' + recordLink + '" style="color: #1f2937; text-decoration: none; font-weight: bold;">Open in NetSuite</a></div>';
+        }
+        infoHtml += '</div>';
+
+        infoHtml += '</div>';
+        infoHtml += '</div>';
 
         form.addField({
             id: 'custpage_info',
@@ -305,6 +320,20 @@ define([
             return 'Vendor Bill';
         }
         return 'Transaction';
+    }
+
+    function buildRecordLink(recordType, recordId) {
+        try {
+            if (!recordType || !recordId) return '';
+            return url.resolveRecord({
+                recordType: recordType,
+                recordId: recordId,
+                returnExternalUrl: true
+            });
+        } catch (error) {
+            log.error('buildRecordLink error', error);
+            return '';
+        }
     }
 
     /**
