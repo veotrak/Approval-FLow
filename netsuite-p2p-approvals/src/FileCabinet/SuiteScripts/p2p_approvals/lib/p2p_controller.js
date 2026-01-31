@@ -6,17 +6,22 @@
 define([
     'N/record', 'N/search', 'N/runtime',
     './p2p_config', './p2p_rule_matcher', './p2p_path_runner',
-    './p2p_history_logger', './p2p_notification_manager',
+    './p2p_history_logger', './p2p_notification_manager', './p2p_native_status_sync',
     '../constants/p2p_constants_v2'
 ], function(
     record, search, runtime,
     config, ruleMatcher, pathRunner,
-    historyLogger, notificationManager, constants
+    historyLogger, notificationManager, nativeStatusSync, constants
 ) {
     'use strict';
 
     const BF = constants.BODY_FIELDS;
     const TF = constants.TASK_FIELDS;
+    const ADMIN_ROLE = '3';
+
+    function isAdmin() {
+        return String(runtime.getCurrentUser().role) === ADMIN_ROLE;
+    }
 
     /**
      * Submit a transaction for approval
@@ -88,19 +93,63 @@ define([
     }
 
     /**
+     * Debug rule matching with detailed evaluations
+     */
+    function debugMatch(params) {
+        try {
+            const tran = record.load({ type: params.recordType, id: params.recordId });
+            const tranType = constants.TRANSACTION_TYPE_MAP[params.recordType];
+            const context = buildMatchContext(tran, tranType);
+            return ruleMatcher.debugMatch(context);
+        } catch (error) {
+            log.error('debugMatch error', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * List path steps for a given approval path (admin debug)
+     * @param {Object} params
+     * @param {string|number} params.pathId - Approval path internal ID
+     * @returns {Object} Result with path info and steps
+     */
+    function listPathSteps(params) {
+        try {
+            const pathId = params.pathId;
+            if (!pathId) {
+                return { success: false, message: 'pathId required' };
+            }
+            const path = ruleMatcher.loadPath(pathId);
+            const steps = ruleMatcher.loadPathSteps(pathId);
+            return {
+                success: true,
+                pathId: pathId,
+                path: path || null,
+                steps: steps,
+                stepCount: steps.length
+            };
+        } catch (error) {
+            log.error('listPathSteps error', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
      * Handle auto-approve for low-risk POs
      */
     function handleAutoApprove(params, tran, context) {
         try {
+            var values = {
+                [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.APPROVED,
+                [BF.CURRENT_STEP]: '',
+                [BF.CURRENT_APPROVER]: '',
+                [BF.MATCH_REASON]: 'Auto-approved (risk score: ' + (context.riskScore || 0) + ')'
+            };
+            nativeStatusSync.addNativeStatusToValues(values, constants.APPROVAL_STATUS.APPROVED);
             record.submitFields({
                 type: params.recordType,
                 id: params.recordId,
-                values: {
-                    [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.APPROVED,
-                    [BF.CURRENT_STEP]: '',
-                    [BF.CURRENT_APPROVER]: '',
-                    [BF.MATCH_REASON]: 'Auto-approved (risk score: ' + (context.riskScore || 0) + ')'
-                }
+                values: values
             });
 
             historyLogger.logAction({
@@ -181,13 +230,15 @@ define([
                 return { success: false, message: 'Task is not pending' };
             }
 
-            // Validate user is authorized
+            // Validate user is authorized (admin can process any task)
             const currentUser = runtime.getCurrentUser().id;
             const approver = task.getValue(TF.APPROVER);
             const actingApprover = task.getValue(TF.ACTING_APPROVER);
-            
-            if (String(currentUser) !== String(approver) && String(currentUser) !== String(actingApprover)) {
-                return { success: false, message: 'Not authorized for this task' };
+
+            if (!isAdmin()) {
+                if (String(currentUser) !== String(approver) && String(currentUser) !== String(actingApprover)) {
+                    return { success: false, message: 'Not authorized for this task' };
+                }
             }
 
             const tranType = task.getValue(TF.TRAN_TYPE);
@@ -202,8 +253,8 @@ define([
                 stepMode = step.getValue(constants.STEP_FIELDS.MODE);
             }
 
-            // Segregation of duties check
-            if (!checkSegregationOfDuties(recordType, recordId, currentUser)) {
+            // Segregation of duties check (admins can bypass)
+            if (!isAdmin() && !checkSegregationOfDuties(recordType, recordId, currentUser)) {
                 return { success: false, message: 'Segregation of duties violation' };
             }
 
@@ -212,13 +263,13 @@ define([
             task.setValue({ fieldId: TF.COMPLETED, value: new Date() });
             task.save();
 
-            // Log history
+            // Log history (when admin acts on another's task, show admin as acting approver)
             historyLogger.logAction({
                 transactionType: tranType,
                 transactionId: recordId,
                 stepSequence: sequence,
                 approver: approver,
-                actingApprover: actingApprover,
+                actingApprover: actingApprover || (isAdmin() && String(currentUser) !== String(approver) ? currentUser : null),
                 action: constants.APPROVAL_ACTION.APPROVE,
                 comment: params.comment,
                 method: params.method || constants.APPROVAL_METHOD.UI,
@@ -289,8 +340,10 @@ define([
             const approver = task.getValue(TF.APPROVER);
             const actingApprover = task.getValue(TF.ACTING_APPROVER);
 
-            if (String(currentUser) !== String(approver) && String(currentUser) !== String(actingApprover)) {
-                return { success: false, message: 'Not authorized for this task' };
+            if (!isAdmin()) {
+                if (String(currentUser) !== String(approver) && String(currentUser) !== String(actingApprover)) {
+                    return { success: false, message: 'Not authorized for this task' };
+                }
             }
 
             const tranType = task.getValue(TF.TRAN_TYPE);
@@ -303,13 +356,13 @@ define([
             task.setValue({ fieldId: TF.COMPLETED, value: new Date() });
             task.save();
 
-            // Log history
+            // Log history (when admin acts on another's task, show admin as acting approver)
             historyLogger.logAction({
                 transactionType: tranType,
                 transactionId: recordId,
                 stepSequence: sequence,
                 approver: approver,
-                actingApprover: actingApprover,
+                actingApprover: actingApprover || (isAdmin() && String(currentUser) !== String(approver) ? currentUser : null),
                 action: constants.APPROVAL_ACTION.REJECT,
                 comment: params.comment,
                 method: params.method || constants.APPROVAL_METHOD.UI,
@@ -325,13 +378,13 @@ define([
                 action: constants.APPROVAL_ACTION.REJECT
             });
 
-            // Update transaction status
+            // Update transaction status (P2P + native approvalstatus for correct banner/posting)
+            var values = { [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.REJECTED };
+            nativeStatusSync.addNativeStatusToValues(values, constants.APPROVAL_STATUS.REJECTED);
             record.submitFields({
                 type: recordType,
                 id: recordId,
-                values: {
-                    [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.REJECTED
-                }
+                values: values
             });
 
             // Notify requestor
@@ -384,18 +437,20 @@ define([
                 action: constants.APPROVAL_ACTION.RECALLED
             });
 
-            // Reset transaction
+            // Reset transaction (sync native status so banner reflects recalled state)
+            var values = {
+                [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.DRAFT,
+                [BF.CURRENT_STEP]: '',
+                [BF.CURRENT_APPROVER]: '',
+                [BF.MATCHED_RULE]: '',
+                [BF.APPROVAL_PATH]: '',
+                [BF.MATCH_REASON]: ''
+            };
+            nativeStatusSync.addNativeStatusToValues(values, constants.APPROVAL_STATUS.DRAFT);
             record.submitFields({
                 type: params.recordType,
                 id: params.recordId,
-                values: {
-                    [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.DRAFT,
-                    [BF.CURRENT_STEP]: '',
-                    [BF.CURRENT_APPROVER]: '',
-                    [BF.MATCHED_RULE]: '',
-                    [BF.APPROVAL_PATH]: '',
-                    [BF.MATCH_REASON]: ''
-                }
+                values: values
             });
 
             historyLogger.logAction({
@@ -420,34 +475,33 @@ define([
      */
     function handleResubmit(params) {
         try {
-            // Reset to draft first
+            // Reset to draft first (sync native status before resubmit)
+            var values = {
+                [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.DRAFT,
+                [BF.CURRENT_STEP]: '',
+                [BF.CURRENT_APPROVER]: '',
+                [BF.MATCHED_RULE]: '',
+                [BF.APPROVAL_PATH]: '',
+                [BF.MATCH_REASON]: ''
+            };
+            nativeStatusSync.addNativeStatusToValues(values, constants.APPROVAL_STATUS.DRAFT);
             record.submitFields({
                 type: params.recordType,
                 id: params.recordId,
-                values: {
-                    [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.DRAFT,
-                    [BF.CURRENT_STEP]: '',
-                    [BF.CURRENT_APPROVER]: '',
-                    [BF.MATCHED_RULE]: '',
-                    [BF.APPROVAL_PATH]: '',
-                    [BF.MATCH_REASON]: ''
-                }
+                values: values
             });
 
-            // Increment revision for PO
-            if (params.recordType === 'purchaseorder') {
-                const tran = record.load({ type: params.recordType, id: params.recordId });
-                const revision = parseInt(tran.getValue(BF.REVISION_NUMBER), 10) || 0;
-                record.submitFields({
-                    type: params.recordType,
-                    id: params.recordId,
-                    values: {
-                        [BF.REVISION_NUMBER]: revision + 1
-                    }
-                });
-            }
+            // Do NOT increment revision on resubmit - per field description, revision should
+            // only increment when an approved PO is edited with material changes (amount,
+            // items, etc.). That is handled in p2p_po_ue.js handlePOEdit via hasRelevantChanges.
 
-            // Submit again
+            // PO: Do NOT call handleSubmit - the submitFields (draft reset) above triggers
+            // the PO afterSubmit user event, which already calls handleSubmit when it sees
+            // DRAFT status. Calling handleSubmit again would create duplicate tasks.
+            // VB: afterSubmit only does matching, so we must call handleSubmit here.
+            if (params.recordType === 'purchaseorder') {
+                return { success: true, status: 'resubmitted' };
+            }
             return handleSubmit(params);
         } catch (error) {
             log.error('handleResubmit error', error);
@@ -534,6 +588,8 @@ define([
         handleRecall: handleRecall,
         handleResubmit: handleResubmit,
         previewMatch: previewMatch,
+        debugMatch: debugMatch,
+        listPathSteps: listPathSteps,
         findPendingTaskForUser: findPendingTaskForUser,
         checkSegregationOfDuties: checkSegregationOfDuties
     };

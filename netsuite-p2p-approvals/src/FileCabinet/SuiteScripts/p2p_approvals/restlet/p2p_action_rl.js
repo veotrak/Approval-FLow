@@ -20,16 +20,42 @@ define([
     const TF = constants.TASK_FIELDS;
 
     function get(params) {
-        return { status: 'ok', timestamp: new Date().toISOString() };
+        try {
+            return {
+                status: 'ok',
+                timestamp: new Date().toISOString(),
+                message: 'P2P Approval RESTlet. Use POST with JSON body: { action, recordType, recordId, ... }',
+                actions: ['submit', 'approve', 'reject', 'recall', 'resubmit', 'previewMatch', 'debugMatch', 'listPathSteps']
+            };
+        } catch (e) {
+            log.error('get error', e);
+            return { status: 'error', message: e.message };
+        }
     }
 
     function post(body) {
         try {
-            const payload = typeof body === 'string' ? JSON.parse(body) : body;
-            const { action, recordType, recordId, comment } = payload;
+            if (body === undefined || body === null) {
+                return { success: false, message: 'Request body required. Use POST with JSON: { action, recordType, recordId, ... }' };
+            }
+            const payload = typeof body === 'string' ? (body.trim() ? JSON.parse(body) : null) : body;
+            if (!payload || typeof payload !== 'object') {
+                return { success: false, message: 'Invalid request body. Expected JSON object with action field.' };
+            }
+            const action = payload.action;
+            const recordType = payload.recordType;
+            const recordId = payload.recordId;
+            const pathId = payload.pathId;
+            const comment = payload.comment;
 
-            if (!action || !recordType || !recordId) {
+            if (!action) {
                 return { success: false, message: 'Missing required parameters' };
+            }
+            if (action !== 'listPathSteps' && (!recordType || !recordId)) {
+                return { success: false, message: 'Missing required parameters (recordType, recordId)' };
+            }
+            if (action === 'listPathSteps' && !pathId) {
+                return { success: false, message: 'Missing required parameter (pathId)' };
             }
 
             // Authorization check
@@ -56,6 +82,12 @@ define([
 
                 case 'previewMatch':
                     return controller.previewMatch({ recordType, recordId });
+
+                case 'debugMatch':
+                    return controller.debugMatch({ recordType, recordId });
+
+                case 'listPathSteps':
+                    return controller.listPathSteps({ pathId: pathId });
 
                 case 'parallelAnyScenario':
                     return handleParallelAnyScenario(recordType, recordId, payload);
@@ -332,6 +364,14 @@ define([
         }
 
         if (action === 'previewMatch') {
+            return isAdmin();
+        }
+
+        if (action === 'debugMatch') {
+            return isAdmin();
+        }
+
+        if (action === 'listPathSteps') {
             return isAdmin();
         }
 

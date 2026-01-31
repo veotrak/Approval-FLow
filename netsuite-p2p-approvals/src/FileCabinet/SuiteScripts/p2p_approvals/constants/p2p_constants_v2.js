@@ -44,16 +44,26 @@ define([], function() {
         '2': 'vendorbill'
     };
 
-    // ===== LIST VALUES =====
+    // ===== LIST VALUES (must match P2P Approval Status custom list) =====
     const APPROVAL_STATUS = {
-        PENDING_SUBMISSION: '1',
-        PENDING_APPROVAL: '2',
-        APPROVED: '3',
-        REJECTED: '4',
-        RECALLED: '5',
-        ESCALATED: '6',
-        PENDING_EXCEPTION_REVIEW: '7',
-        DRAFT: '8'
+        DRAFT: '1',
+        PENDING_SUBMISSION: '2',
+        PENDING_APPROVAL: '3',
+        APPROVED: '4',
+        REJECTED: '5',
+        RECALLED: '6',
+        ESCALATED: '7',
+        PENDING_EXCEPTION_REVIEW: '8'
+    };
+
+    // ===== NATIVE APPROVAL STATUS (NetSuite transaction approvalstatus field) =====
+    // Internal IDs for the standard Approval Status list on PO/Vendor Bill.
+    // Verify in your account: Setup > Lists > Approval Status (or search for approval status list).
+    // Typical values: 1=Pending Approval, 2=Approved, 3=Rejected
+    const NATIVE_APPROVAL_STATUS = {
+        PENDING_APPROVAL: '1',
+        APPROVED: '2',
+        REJECTED: '3'
     };
 
     const APPROVAL_ACTION = {
@@ -135,45 +145,46 @@ define([], function() {
 
     // ===== DECISION RULE FIELDS =====
     const DECISION_RULE_FIELDS = {
-        CODE: 'custrecord_dr_code',
-        TRAN_TYPE: 'custrecord_dr_tran_type',
-        SUBSIDIARY: 'custrecord_dr_subsidiary',
-        AMT_MIN: 'custrecord_dr_amt_min',
-        AMT_MAX: 'custrecord_dr_amt_max',
-        DEPARTMENT: 'custrecord_dr_department',
-        LOCATION: 'custrecord_dr_location',
-        RISK_MIN: 'custrecord_dr_risk_min',
-        RISK_MAX: 'custrecord_dr_risk_max',
-        EXCEPTION: 'custrecord_dr_exception',
-        PRIORITY: 'custrecord_dr_priority',
-        PATH: 'custrecord_dr_path',
-        EFF_FROM: 'custrecord_dr_eff_from',
-        EFF_TO: 'custrecord_dr_eff_to',
-        ACTIVE: 'custrecord_dr_active',
-        DESCRIPTION: 'custrecord_dr_description'
+        TRAN_TYPE: 'custrecord_p2p_dr_tran_type',
+        SUBSIDIARY: 'custrecord_p2p_dr_subsidiary',
+        DEPARTMENT: 'custrecord_p2p_dr_department',
+        LOCATION: 'custrecord_p2p_dr_location',
+        DEPT_GROUP: 'custrecord_p2p_dr_dept_group',
+        LOC_GROUP: 'custrecord_p2p_dr_loc_group',
+        AMT_MIN: 'custrecord_p2p_dr_amt_from',
+        AMT_MAX: 'custrecord_p2p_dr_amt_to',
+        CURRENCY: 'custrecord_p2p_dr_currency',
+        RISK_MIN: 'custrecord_p2p_dr_min_risk',
+        RISK_MAX: 'custrecord_p2p_dr_max_risk',
+        EXCEPTION: 'custrecord_p2p_dr_exception',
+        PRIORITY: 'custrecord_dr_priority',  // verified: your account uses this (no p2p prefix)
+        PATH: 'custrecord_p2p_dr_path',
+        EFF_FROM: 'custrecord_p2p_dr_eff_from',
+        EFF_TO: 'custrecord_p2p_dr_eff_to',
+        ACTIVE: 'custrecord_p2p_dr_active'
     };
 
     // ===== APPROVAL PATH FIELDS =====
     const PATH_FIELDS = {
-        CODE: 'custrecord_ap_code',
-        DESCRIPTION: 'custrecord_ap_description',
-        SLA_HOURS: 'custrecord_ap_sla_hours',
-        ACTIVE: 'custrecord_ap_active',
-        STEP_SUMMARY: 'custrecord_ap_step_summary'
+        CODE: 'custrecord_p2p_ap_code',
+        DESCRIPTION: 'custrecord_p2p_ap_description',
+        SLA_HOURS: 'custrecord_p2p_ap_sla_hours',
+        ACTIVE: 'custrecord_p2p_ap_active',
+        STEP_SUMMARY: 'custrecord_p2p_ap_step_summary'
     };
 
     // ===== PATH STEP FIELDS =====
     const STEP_FIELDS = {
-        PATH: 'custrecord_ps_path',
-        SEQUENCE: 'custrecord_ps_sequence',
-        NAME: 'custrecord_ps_name',
-        APPROVER_TYPE: 'custrecord_ps_approver_type',
-        ROLE: 'custrecord_ps_role',
-        EMPLOYEE: 'custrecord_ps_employee',
-        MODE: 'custrecord_ps_mode',
-        REQUIRE_COMMENT: 'custrecord_ps_require_comment',
-        SLA_HOURS: 'custrecord_ps_sla_hours',
-        ACTIVE: 'custrecord_ps_active'
+        PATH: 'custrecord_p2p_ps_path',
+        SEQUENCE: 'custrecord_p2p_ps_sequence',
+        NAME: 'custrecord_p2p_ps_name',
+        APPROVER_TYPE: 'custrecord_p2p_ps_approver_type',
+        ROLE: 'custrecord_p2p_ps_role',
+        EMPLOYEE: 'custrecord_p2p_ps_employee',
+        MODE: 'custrecord_p2p_ps_exec_mode',
+        REQUIRE_COMMENT: 'custrecord_p2p_ps_require_comment',
+        SLA_HOURS: 'custrecord_p2p_ps_timeout_hours',
+        ACTIVE: 'custrecord_ps_active'  // verified: your account uses this (no p2p prefix)
     };
 
     // ===== GLOBAL CONFIG FIELDS =====
@@ -207,7 +218,7 @@ define([], function() {
         TRAN_TYPE: 'custrecord_p2p_at_tran_type',
         TRAN_ID: 'custrecord_p2p_at_tran_id',
         PATH: 'custrecord_p2p_at_path',           // NEW: links to path instead of rule
-        PATH_STEP: 'custrecord_p2p_at_path_step', // NEW: links to path step
+        PATH_STEP: 'custrecord_p2p_at_step',  // verified: your account uses this (not path_step)
         SEQUENCE: 'custrecord_p2p_at_sequence',
         APPROVER: 'custrecord_p2p_at_approver',
         ACTING_APPROVER: 'custrecord_p2p_at_acting_approver',
@@ -263,6 +274,7 @@ define([], function() {
         // Matching (VB only)
         EXCEPTION_TYPE: 'custbody_p2p_exception_type',
         MATCH_STATUS: 'custbody_p2p_match_status',
+        SUBMITTED_BY: 'custbody_p2p_submitted_by',
         
         // AI/Risk
         AI_RISK_SCORE: 'custbody_p2p_ai_risk_score',
@@ -325,6 +337,7 @@ define([], function() {
         DELEGATION_FIELDS,
         BODY_FIELDS,
         CONFIG_DEFAULTS,
-        SCRIPTS
+        SCRIPTS,
+        NATIVE_APPROVAL_STATUS
     };
 });

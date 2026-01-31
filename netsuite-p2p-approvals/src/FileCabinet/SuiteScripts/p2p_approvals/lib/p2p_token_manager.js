@@ -6,9 +6,9 @@
  * Handles secure token generation and validation for email approvals
  */
 define([
-    'N/crypto/random', 'N/encode', 'N/record', 'N/search', 'N/format',
+    'N/crypto/random', 'N/record', 'N/search', 'N/format',
     '../constants/p2p_constants_v2', './p2p_config'
-], function(random, encode, record, search, format, constants, config) {
+], function(random, record, search, format, constants, config) {
     'use strict';
 
     const RT = constants.RECORD_TYPES;
@@ -21,15 +21,14 @@ define([
      */
     function generateToken() {
         try {
-            // Generate 32 random bytes
+            // Generate 32 random bytes (returns Uint8Array - do not pass to N/encode)
             const bytes = random.generateBytes({ size: 32 });
-            
-            // Convert to hex string
-            return encode.convert({
-                string: bytes,
-                inputEncoding: encode.Encoding.BINARY,
-                outputEncoding: encode.Encoding.HEX
-            });
+            // Convert Uint8Array to hex string in JS to avoid Java type coercion
+            var hex = '';
+            for (var i = 0; i < bytes.length; i++) {
+                hex += ('0' + (bytes[i] & 0xFF).toString(16)).slice(-2);
+            }
+            return hex;
         } catch (error) {
             log.error('generateToken error', error);
             throw error;

@@ -28,6 +28,36 @@ define([
     }
 
     /**
+     * Format timestamp for display - handles NetSuite search result formats
+     */
+    function formatTimestamp(value) {
+        if (value === null || value === undefined || value === '') return '';
+        try {
+            var d = parseTimestamp(value);
+            if (!d || isNaN(d.getTime())) return String(value);
+            return format.format({ value: d, type: format.Type.DATETIME });
+        } catch (e) {
+            return String(value);
+        }
+    }
+
+    /**
+     * Parse timestamp to Date for sorting - handles NetSuite search result formats
+     */
+    function parseTimestamp(value) {
+        if (value === null || value === undefined || value === '') return null;
+        try {
+            if (value instanceof Date) return value;
+            if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
+                return new Date(parseInt(value, 10));
+            }
+            return format.parse({ value: String(value), type: format.Type.DATETIME });
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
      * Log an approval action to history
      * 
      * @param {Object} params
@@ -158,9 +188,13 @@ define([
                 return true;
             });
 
-            // Sort by timestamp ascending
+            // Sort by timestamp descending (latest on top) - use parseTimestamp for NetSuite date formats
             results.sort(function(a, b) {
-                return new Date(a.timestamp) - new Date(b.timestamp);
+                var dateA = parseTimestamp(a.timestamp);
+                var dateB = parseTimestamp(b.timestamp);
+                var msA = dateA && !isNaN(dateA.getTime()) ? dateA.getTime() : 0;
+                var msB = dateB && !isNaN(dateB.getTime()) ? dateB.getTime() : 0;
+                return msB - msA;
             });
 
             return results;
@@ -180,44 +214,44 @@ define([
     function buildHistoryHtml(transactionType, transactionId) {
         const history = getFormattedHistory(transactionType, transactionId);
 
+        var emptyStyle = 'padding: 16px; color: #6c757d; font-size: 13px; text-align: center;';
         if (!history.length) {
-            return '<div style="padding: 10px; color: #666;">No approval history available.</div>';
+            return '<div style="' + emptyStyle + '">No approval history available.</div>';
         }
 
-        let html = '<table style="width: 100%; border-collapse: collapse; font-size: 12px;">';
-        html += '<thead>';
-        html += '<tr style="background-color: #f5f5f5;">';
-        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Step</th>';
-        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Action</th>';
-        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Approver</th>';
-        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Timestamp</th>';
-        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Method</th>';
-        html += '<th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Comment</th>';
-        html += '</tr>';
-        html += '</thead>';
-        html += '<tbody>';
+        var cardStyle = 'background: #fff; border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden;';
+        var thStyle = 'text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #495057; background: #f8f9fa; border-bottom: 1px solid #dee2e6;';
+        var tdStyle = 'padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f1f3f5;';
+        var lastTd = 'padding: 10px 12px; font-size: 13px;';
+
+        var html = '<div style="' + cardStyle + '">';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr>';
+        html += '<th style="' + thStyle + ' width: 50px;">Step</th>';
+        html += '<th style="' + thStyle + ' width: 100px;">Action</th>';
+        html += '<th style="' + thStyle + '">Approver</th>';
+        html += '<th style="' + thStyle + ' width: 140px;">Timestamp</th>';
+        html += '<th style="' + thStyle + ' width: 70px;">Method</th>';
+        html += '<th style="' + thStyle + '">Comment</th>';
+        html += '</tr></thead><tbody>';
 
         history.forEach(function(entry, index) {
-            const rowColor = index % 2 === 0 ? '#fff' : '#fafafa';
-            const actionColor = getActionColor(entry.action);
-            
-            const timestampDisplay = entry.timestamp 
-                ? format.format({ value: new Date(entry.timestamp), type: format.Type.DATETIME })
-                : '';
+            var rowBg = index % 2 === 0 ? '#fff' : '#fafbfc';
+            var actionColor = getActionColor(entry.action);
+            var timestampDisplay = formatTimestamp(entry.timestamp);
+            var isLast = index === history.length - 1;
 
-            html += '<tr style="background-color: ' + rowColor + ';">';
-            html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + escapeHtml(entry.step) + '</td>';
-            html += '<td style="padding: 8px; border-bottom: 1px solid #eee; color: ' + actionColor + '; font-weight: bold;">' + escapeHtml(entry.action) + '</td>';
-            html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + escapeHtml(entry.approver) + '</td>';
-            html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + escapeHtml(timestampDisplay) + '</td>';
-            html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + escapeHtml(entry.method) + '</td>';
-            html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + escapeHtml(entry.comment || '') + '</td>';
+            html += '<tr style="background: ' + rowBg + ';">';
+            html += '<td style="' + (isLast ? lastTd : tdStyle) + '">' + escapeHtml(entry.step) + '</td>';
+            html += '<td style="' + (isLast ? lastTd : tdStyle) + '"><span style="color: ' + actionColor + '; font-weight: 600;">' + escapeHtml(entry.action) + '</span></td>';
+            html += '<td style="' + (isLast ? lastTd : tdStyle) + '">' + escapeHtml(entry.approver) + '</td>';
+            html += '<td style="' + (isLast ? lastTd : tdStyle) + '">' + escapeHtml(timestampDisplay) + '</td>';
+            html += '<td style="' + (isLast ? lastTd : tdStyle) + '">' + escapeHtml(entry.method) + '</td>';
+            html += '<td style="' + (isLast ? lastTd : tdStyle) + '">' + escapeHtml(entry.comment || '—') + '</td>';
             html += '</tr>';
         });
 
-        html += '</tbody>';
-        html += '</table>';
-
+        html += '</tbody></table></div>';
         return html;
     }
 

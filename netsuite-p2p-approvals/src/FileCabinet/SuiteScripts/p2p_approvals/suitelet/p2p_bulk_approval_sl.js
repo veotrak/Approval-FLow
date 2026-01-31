@@ -6,11 +6,11 @@
  * Allows approvers to process multiple pending approvals at once
  */
 define([
-    'N/ui/serverWidget', 'N/search', 'N/runtime', 'N/record', 'N/task',
+    'N/ui/serverWidget', 'N/search', 'N/runtime', 'N/record', 'N/format', 'N/task', 'N/url',
     '../lib/p2p_controller',
     '../lib/p2p_config',
     '../constants/p2p_constants_v2'
-], function(serverWidget, search, runtime, record, task, controller, config, constants) {
+], function(serverWidget, search, runtime, record, format, task, url, controller, config, constants) {
     'use strict';
 
     const RT = constants.RECORD_TYPES;
@@ -23,24 +23,26 @@ define([
      * Main request handler
      */
     function onRequest(context) {
-        if (context.request.method === 'GET') {
+        const req = context.request;
+        if (req.method === 'GET') {
             return showPendingApprovals(context);
         }
-
-        if (context.request.method === 'POST') {
+        if (req.method === 'POST') {
             return processBulkApprovals(context);
         }
     }
 
+    const ADMIN_ROLE = '3';
+
     /**
-     * Show pending approvals for current user
+     * Show pending approvals for current user (or all if admin)
      */
     function showPendingApprovals(context) {
         const currentUser = runtime.getCurrentUser().id;
+        const isAdmin = String(runtime.getCurrentUser().role) === ADMIN_ROLE;
         const form = serverWidget.createForm({ 
-            title: 'P2P Bulk Approvals'
+            title: 'P2P Bulk Approvals' + (isAdmin ? ' (Admin - All Tasks)' : '')
         });
-
         // Add action selector
         const actionField = form.addField({
             id: 'custpage_action',
@@ -68,38 +70,48 @@ define([
 
         // Add sublist columns
         sublist.addField({ id: 'select', type: serverWidget.FieldType.CHECKBOX, label: 'Select' });
+        sublist.addMarkAllButtons();
         sublist.addField({ id: 'taskid', type: serverWidget.FieldType.TEXT, label: 'Task ID' });
         sublist.addField({ id: 'trantype', type: serverWidget.FieldType.TEXT, label: 'Type' });
-        sublist.addField({ id: 'tranid', type: serverWidget.FieldType.TEXT, label: 'Tran #' });
+        sublist.addField({ id: 'tranlink', type: serverWidget.FieldType.TEXT, label: 'Tran #' });
         sublist.addField({ id: 'entity', type: serverWidget.FieldType.TEXT, label: 'Vendor/Entity' });
         sublist.addField({ id: 'amount', type: serverWidget.FieldType.CURRENCY, label: 'Amount' });
         sublist.addField({ id: 'trandate', type: serverWidget.FieldType.TEXT, label: 'Date' });
+        sublist.addField({ id: 'approver', type: serverWidget.FieldType.TEXT, label: 'Approver' });
+        sublist.addField({ id: 'approvalpath', type: serverWidget.FieldType.TEXT, label: 'Approval Path' });
+        sublist.addField({ id: 'stepname', type: serverWidget.FieldType.TEXT, label: 'Step Name' });
+        sublist.addField({ id: 'requestor', type: serverWidget.FieldType.TEXT, label: 'Requestor' });
         sublist.addField({ id: 'step', type: serverWidget.FieldType.INTEGER, label: 'Step' });
         sublist.addField({ id: 'age', type: serverWidget.FieldType.TEXT, label: 'Age' });
         sublist.addField({ id: 'riskflags', type: serverWidget.FieldType.TEXT, label: 'Risk Flags' });
 
-        // Search for pending tasks
+        // Search for pending tasks (admins see all, others see only their own)
+        var filters = [
+            [TF.STATUS, 'anyof', STATUS.PENDING]
+        ];
+        if (!isAdmin) {
+            filters.push('and');
+            filters.push([
+                [TF.APPROVER, 'anyof', currentUser],
+                'or',
+                [TF.ACTING_APPROVER, 'anyof', currentUser]
+            ]);
+        }
         const taskSearch = search.create({
             type: RT.APPROVAL_TASK,
-            filters: [
-                [TF.STATUS, 'anyof', STATUS.PENDING],
-                'and',
-                [
-                    [TF.APPROVER, 'anyof', currentUser],
-                    'or',
-                    [TF.ACTING_APPROVER, 'anyof', currentUser]
-                ]
-            ],
+            filters: filters,
             columns: [
                 'internalid',
                 TF.TRAN_TYPE,
                 TF.TRAN_ID,
                 TF.SEQUENCE,
                 TF.CREATED,
-                TF.PATH
+                TF.APPROVER,
+                TF.ACTING_APPROVER
             ]
         });
 
+        const pathStepCache = {};
         let line = 0;
         taskSearch.run().each(function(result) {
             const taskId = result.getValue('internalid');
@@ -108,21 +120,112 @@ define([
             const sequence = result.getValue(TF.SEQUENCE);
             const created = result.getValue(TF.CREATED);
 
+            // Skip tasks whose transaction was deleted; cancel orphaned task so it won't reappear
+            var recordType = getRecordTypeFromTranType(tranType);
+            if (recordType && tranId) {
+                try {
+                    record.load({ type: recordType, id: tranId });
+                } catch (e) {
+                    try {
+                        record.submitFields({
+                            type: RT.APPROVAL_TASK,
+                            id: taskId,
+                            values: { [TF.STATUS]: STATUS.CANCELLED }
+                        });
+                    } catch (cancelErr) { /* ignore */ }
+                    return true; // Skip this task, continue to next
+                }
+            }
+
+            // Approver: acting approver or original approver (getText for employee name)
+            var approverText = result.getText({ name: TF.ACTING_APPROVER }) || result.getText({ name: TF.APPROVER }) || '';
+
+            // Path and step: load task to get path/step IDs (PATH and PATH_STEP may be invalid search columns in some deployments)
+            var pathId = null;
+            var pathStepId = null;
+            var pathName = '';
+            var stepName = '';
+            try {
+                var taskRec = record.load({ type: RT.APPROVAL_TASK, id: taskId });
+                pathId = taskRec.getValue(TF.PATH);
+                pathStepId = taskRec.getValue(TF.PATH_STEP);
+            } catch (e) { /* ignore */ }
+            if (!pathName && pathId) {
+                var cachedPath = pathStepCache['path_' + pathId];
+                if (cachedPath !== undefined) {
+                    pathName = cachedPath;
+                } else {
+                    try {
+                        var pathRec = record.load({ type: RT.APPROVAL_PATH, id: pathId });
+                        pathName = pathRec.getValue(constants.PATH_FIELDS.CODE) || pathRec.getValue(constants.PATH_FIELDS.DESCRIPTION) || String(pathId);
+                        pathStepCache['path_' + pathId] = pathName;
+                    } catch (e) {
+                        pathStepCache['path_' + pathId] = '';
+                        pathName = '';
+                    }
+                }
+            }
+            if (!stepName && pathStepId) {
+                var cachedStep = pathStepCache['step_' + pathStepId];
+                if (cachedStep !== undefined) {
+                    stepName = cachedStep;
+                } else {
+                    try {
+                        var stepRec = record.load({ type: RT.PATH_STEP, id: pathStepId });
+                        stepName = stepRec.getValue(constants.STEP_FIELDS.NAME) || ('Step ' + (sequence || ''));
+                        pathStepCache['step_' + pathStepId] = stepName;
+                    } catch (e) {
+                        pathStepCache['step_' + pathStepId] = '';
+                        stepName = '';
+                    }
+                }
+            }
+
             // Get transaction details
             const tranDetails = getTransactionDetails(tranType, tranId);
 
             // Calculate age
             const ageText = calculateAge(created);
 
-            sublist.setSublistValue({ id: 'taskid', line: line, value: String(taskId) });
-            sublist.setSublistValue({ id: 'trantype', line: line, value: tranDetails.typeLabel || '' });
-            sublist.setSublistValue({ id: 'tranid', line: line, value: tranDetails.tranNum || String(tranId) });
-            sublist.setSublistValue({ id: 'entity', line: line, value: tranDetails.entity || '' });
-            sublist.setSublistValue({ id: 'amount', line: line, value: tranDetails.amount || '0' });
-            sublist.setSublistValue({ id: 'trandate', line: line, value: tranDetails.date || '' });
-            sublist.setSublistValue({ id: 'step', line: line, value: String(sequence || 1) });
-            sublist.setSublistValue({ id: 'age', line: line, value: ageText });
-            sublist.setSublistValue({ id: 'riskflags', line: line, value: tranDetails.riskFlags || '' });
+            // Build link URL to PO/VB record (URL field renders as clickable link)
+            var linkUrl = '';
+            try {
+                var recordType = getRecordTypeFromTranType(tranType);
+                if (recordType && tranId) {
+                    linkUrl = url.resolveRecord({
+                        recordType: recordType,
+                        recordId: tranId,
+                        isEditMode: false
+                    });
+                }
+            } catch (e) { /* ignore */ }
+
+            var td = tranDetails || {};
+            function setVal(fid, val) {
+                var v = (val === undefined || val === null) ? '' : String(val);
+                sublist.setSublistValue({ id: fid, line: line, value: v });
+            }
+            try {
+                var tranNum = td.tranNum || tranId || '';
+                var tranLinkVal = linkUrl
+                    ? '<a href="' + escapeHtml(linkUrl) + '" target="_blank">' + escapeHtml(tranNum) + '</a>'
+                    : tranNum;
+                setVal('taskid', String(taskId));
+                setVal('trantype', td.typeLabel);
+                setVal('tranlink', tranLinkVal);
+                setVal('entity', td.entity);
+                setVal('amount', (td.amount != null && td.amount !== '') ? String(parseFloat(td.amount) || 0) : '0');
+                setVal('trandate', td.date);
+                setVal('approver', approverText);
+                setVal('approvalpath', pathName);
+                setVal('stepname', stepName);
+                setVal('requestor', td.requestor || '');
+                setVal('step', String(sequence || 1));
+                setVal('age', ageText);
+                setVal('riskflags', td.riskFlags);
+            } catch (e) {
+                log.error('BulkApproval setSublistValue', 'Line ' + line + ': ' + e.message);
+            }
 
             line++;
             return line < 200; // Limit to 200 records
@@ -137,21 +240,9 @@ define([
             '<strong>Total Pending:</strong> ' + line + ' task(s)' +
             '</div>';
 
-        // Add buttons
-        form.addSubmitButton({ label: 'Process Selected' });
-        form.addButton({
-            id: 'custpage_select_all',
-            label: 'Select All',
-            functionName: 'selectAll'
-        });
-        form.addButton({
-            id: 'custpage_clear_all',
-            label: 'Clear All',
-            functionName: 'clearAll'
-        });
+        form.addSubmitButton({ id: 'custpage_submit', label: 'Process Selected' });
 
-        // Add client script for select all/clear all
-        form.clientScriptModulePath = './p2p_bulk_approval_cs.js';
+        form.clientScriptModulePath = 'SuiteScripts/p2p_approvals/client/p2p_bulk_approval_cs';
 
         context.response.writePage(form);
     }
@@ -167,11 +258,11 @@ define([
 
         // Validation
         if (!action) {
-            return showResultPage(context, 'Please select an action (Approve or Reject).');
+            return showResultPage(context, 'Please select an action (Approve or Reject).', false);
         }
 
         if (action === 'reject' && !comment) {
-            return showResultPage(context, 'A comment is required when rejecting.');
+            return showResultPage(context, 'A comment is required when rejecting. Please go back and enter a comment before rejecting.', false);
         }
 
         // Get config for limits
@@ -193,11 +284,11 @@ define([
         }
 
         if (selectedCount === 0) {
-            return showResultPage(context, 'Please select at least one task to process.');
+            return showResultPage(context, 'Please select at least one task to process.', false);
         }
 
         if (selectedCount > bulkLimit) {
-            return showResultPage(context, 'Too many selections. Maximum is ' + bulkLimit + ' tasks per batch.');
+            return showResultPage(context, 'Too many selections. Maximum is ' + bulkLimit + ' tasks per batch.', false);
         }
 
         // Process approvals
@@ -270,7 +361,8 @@ define([
             entity: '',
             amount: '',
             date: '',
-            riskFlags: ''
+            riskFlags: '',
+            requestor: ''
         };
 
         try {
@@ -283,6 +375,7 @@ define([
             details.amount = tran.getValue('total') || '';
             details.date = tran.getText('trandate') || '';
             details.riskFlags = tran.getValue(constants.BODY_FIELDS.AI_RISK_FLAGS) || '';
+            details.requestor = tran.getText('employee') || tran.getText('requestor') || tran.getText('createdby') || '';
 
             // Truncate risk flags for display
             if (details.riskFlags && details.riskFlags.length > 50) {
@@ -302,14 +395,19 @@ define([
         if (!createdStr) return '';
 
         try {
-            const created = new Date(createdStr);
+            var created = new Date(createdStr);
+            if (isNaN(created.getTime()) && typeof createdStr === 'string') {
+                try { created = format.parse({ value: createdStr, type: format.Type.DATETIME }); } catch (e) {}
+            }
+            if (!created || isNaN(created.getTime())) return '';
             const now = new Date();
             const diffMs = now - created;
             const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            if (isNaN(diffHours) || diffHours < 0) return '';
 
             if (diffHours < 1) return '< 1 hour';
             if (diffHours < 24) return diffHours + ' hours';
-            
+
             const diffDays = Math.floor(diffHours / 24);
             if (diffDays === 1) return '1 day';
             return diffDays + ' days';
@@ -324,12 +422,13 @@ define([
     function showResultPage(context, message, success) {
         const form = serverWidget.createForm({ title: 'Bulk Approval Results' });
 
-        const color = success !== false ? '#4CAF50' : '#FF9800';
-        const icon = success !== false ? '✓' : '⚠';
+        const color = success !== false ? '#4CAF50' : '#D32F2F';
+        const icon = success !== false ? '✓' : '✗';
+        const heading = success !== false ? 'Processing Complete' : 'Action Required';
 
         let html = '<div style="padding: 40px; text-align: center;">';
         html += '<div style="font-size: 48px; color: ' + color + ';">' + icon + '</div>';
-        html += '<h2 style="color: ' + color + ';">Processing Complete</h2>';
+        html += '<h2 style="color: ' + color + ';">' + heading + '</h2>';
         html += '<p style="white-space: pre-wrap;">' + escapeHtml(message) + '</p>';
         html += '<p style="margin-top: 20px;"><a href="' + getReturnUrl() + '">Return to Bulk Approvals</a></p>';
         html += '</div>';
@@ -344,10 +443,17 @@ define([
     }
 
     /**
-     * Get URL to return to bulk approvals
+     * Get URL to return to bulk approvals (base URL for redirects)
+     */
+    function getBulkApprovalUrl() {
+        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_bulk_approval_sl&deploy=customdeploy_p2p_bulk_approval';
+    }
+
+    /**
+     * Alias for getBulkApprovalUrl (used by showResultPage)
      */
     function getReturnUrl() {
-        return '/app/site/hosting/scriptlet.nl?script=customscript_p2p_bulk_approval_sl&deploy=customdeploy_p2p_bulk_approval';
+        return getBulkApprovalUrl();
     }
 
     /**

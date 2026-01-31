@@ -35,11 +35,9 @@ define([
             // Set client script
             form.clientScriptModulePath = '../client/p2p_vb_cs.js';
 
-            // Add approval history section
-            addHistorySection(form, rec);
-
-            // Add match status section
+            // Add P2P Approval tab content: Match Status first (summary), then History
             addMatchStatusSection(form, rec);
+            addHistorySection(form, rec);
 
             // Only add buttons in VIEW mode
             if (context.type !== context.UserEventType.VIEW) {
@@ -108,9 +106,9 @@ define([
             }
 
             // Recall button - show when Pending and user is submitter
-            const submittedBy = rec.getValue(BF.SUBMITTED_BY);
+            const submittedBy = rec.getValue(BF.SUBMITTED_BY) || rec.getValue('createdby') || rec.getValue('employee');
             if (status === STATUS.PENDING_APPROVAL && 
-                String(submittedBy) === String(currentUser)) {
+                submittedBy && String(submittedBy) === String(currentUser)) {
                 
                 form.addButton({
                     id: 'custpage_p2p_recall',
@@ -125,68 +123,69 @@ define([
     }
 
     /**
-     * Add approval history section to form
+     * Add approval history section to form (in P2P Approval tab; tab created by addMatchStatusSection)
      */
     function addHistorySection(form, rec) {
         try {
-            const historyHtml = historyLogger.buildHistoryHtml(TRAN_TYPE, rec.id);
-            
-            const historyField = form.addField({
+            var historyHtml = historyLogger.buildHistoryHtml(TRAN_TYPE, rec.id);
+            var tabId = 'custpage_p2p_approval_tab';
+
+            var historyField = form.addField({
                 id: 'custpage_p2p_history',
                 type: serverWidget.FieldType.INLINEHTML,
-                label: 'P2P Approval History'
+                label: 'Approval History',
+                container: tabId
             });
-            historyField.defaultValue = '<div style="margin: 10px 0;">' +
-                '<h3 style="margin-bottom: 10px; color: #333;">Approval History</h3>' +
-                historyHtml + '</div>';
+            historyField.defaultValue = historyHtml || '';
         } catch (error) {
             log.error('addHistorySection error', error);
         }
     }
 
     /**
-     * Add match status section to form
+     * Add match status section to form (in P2P Approval tab, above history)
      */
     function addMatchStatusSection(form, rec) {
         try {
-            const matchStatus = rec.getValue(BF.MATCH_STATUS);
-            const exceptionType = rec.getText(BF.EXCEPTION_TYPE) || rec.getValue(BF.EXCEPTION_TYPE);
-            const riskFlags = rec.getValue(BF.AI_RISK_FLAGS);
+            var tabId = 'custpage_p2p_approval_tab';
+            form.addTab({ id: tabId, label: 'P2P Approval' });
 
-            let statusColor = '#4CAF50'; // Green
-            let statusText = 'Matched';
+            var matchStatus = rec.getValue(BF.MATCH_STATUS);
+            var exceptionType = rec.getText(BF.EXCEPTION_TYPE) || rec.getValue(BF.EXCEPTION_TYPE);
+            var riskFlags = rec.getValue(BF.AI_RISK_FLAGS);
+
+            var statusColor = '#28a745';
+            var statusText = 'Matched';
 
             if (matchStatus === constants.MATCH_STATUS.NOT_MATCHED) {
-                statusColor = '#9E9E9E';
+                statusColor = '#6c757d';
                 statusText = 'Not Checked';
             } else if (matchStatus !== constants.MATCH_STATUS.MATCHED) {
-                statusColor = '#f44336';
+                statusColor = '#dc3545';
                 statusText = 'Exception';
             }
 
-            let html = '<div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
-            html += '<h3 style="margin-bottom: 10px; color: #333;">3-Way Match Status</h3>';
-            html += '<div style="display: flex; align-items: center; gap: 20px;">';
-            html += '<div style="padding: 8px 16px; background-color: ' + statusColor + '; color: white; border-radius: 4px; font-weight: bold;">' + statusText + '</div>';
-            
+            var cardStyle = 'padding: 16px; background: #fff; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 20px;';
+            var html = '<div style="' + cardStyle + '">';
+            html += '<div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; margin-bottom: 10px;">3-Way Match Status</div>';
+            html += '<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">';
+            html += '<span style="padding: 8px 16px; background: ' + statusColor + '; color: white; border-radius: 6px; font-weight: 600; font-size: 13px;">' + statusText + '</span>';
             if (exceptionType) {
-                html += '<div><strong>Exception:</strong> ' + escapeHtml(exceptionType) + '</div>';
+                html += '<span style="font-size: 13px; color: #495057;"><strong>Exception:</strong> ' + escapeHtml(exceptionType) + '</span>';
             }
-            
             html += '</div>';
-
             if (riskFlags) {
-                html += '<div style="margin-top: 10px; padding: 8px; background-color: #FFF3E0; border-radius: 4px;">';
+                html += '<div style="margin-top: 12px; padding: 10px; background: #fff8e6; border-radius: 6px; font-size: 13px; color: #495057;">';
                 html += '<strong>Risk Flags:</strong> ' + escapeHtml(riskFlags);
                 html += '</div>';
             }
-
             html += '</div>';
 
-            const matchField = form.addField({
+            var matchField = form.addField({
                 id: 'custpage_p2p_match_status',
                 type: serverWidget.FieldType.INLINEHTML,
-                label: 'Match Status'
+                label: 'Match Status',
+                container: 'custpage_p2p_approval_tab'
             });
             matchField.defaultValue = html;
         } catch (error) {
@@ -214,15 +213,15 @@ define([
             const rec = context.newRecord;
 
             if (context.type === context.UserEventType.CREATE) {
-                // Set initial status to Draft
-                rec.setValue({
-                    fieldId: BF.APPROVAL_STATUS,
-                    value: STATUS.DRAFT
-                });
-                rec.setValue({
-                    fieldId: BF.MATCH_STATUS,
-                    value: constants.MATCH_STATUS.NOT_MATCHED
-                });
+                // Reset P2P fields for new record (including copies) - start clean
+                rec.setValue({ fieldId: BF.APPROVAL_STATUS, value: STATUS.DRAFT });
+                rec.setValue({ fieldId: BF.CURRENT_STEP, value: '' });
+                rec.setValue({ fieldId: BF.CURRENT_APPROVER, value: '' });
+                rec.setValue({ fieldId: BF.MATCHED_RULE, value: '' });
+                rec.setValue({ fieldId: BF.APPROVAL_PATH, value: '' });
+                rec.setValue({ fieldId: BF.MATCH_REASON, value: '' });
+                rec.setValue({ fieldId: BF.EXCEPTION_TYPE, value: '' });
+                rec.setValue({ fieldId: BF.MATCH_STATUS, value: constants.MATCH_STATUS.NOT_MATCHED });
             }
 
         } catch (error) {

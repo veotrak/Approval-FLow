@@ -22,25 +22,16 @@ define([
             const form = context.form;
             const rec = context.newRecord;
 
-            form.clientScriptModulePath = '../client/p2p_po_cs_v2.js';
+            form.clientScriptModulePath = '../client/p2p_po_cs.js';
 
             if (context.type === context.UserEventType.VIEW || context.type === context.UserEventType.EDIT) {
                 addHistorySection(form, rec);
             }
 
-            if (context.type === context.UserEventType.VIEW) {
-                // Add match reason display (explainability)
-                const matchReason = rec.getValue(BF.MATCH_REASON);
-                if (matchReason) {
-                    const explainField = form.addField({
-                        id: 'custpage_p2p_explain',
-                        type: serverWidget.FieldType.INLINEHTML,
-                        label: 'Rule Match Explanation'
-                    });
-                    explainField.defaultValue = buildExplainHtml(rec);
-                }
+            // Rule explanation is now included in addHistorySection (Approval Routing block)
 
-                // Add action buttons based on status
+            // Add action buttons on both VIEW and EDIT so Submit/Recall/Approve/Reject are visible
+            if (context.type === context.UserEventType.VIEW || context.type === context.UserEventType.EDIT) {
                 addActionButtons(form, rec);
             }
         } catch (error) {
@@ -53,8 +44,13 @@ define([
             const rec = context.newRecord;
 
             if (context.type === context.UserEventType.CREATE) {
-                // Set initial status to Draft
+                // Reset P2P fields for new record (including copies) - start clean
                 rec.setValue({ fieldId: BF.APPROVAL_STATUS, value: constants.APPROVAL_STATUS.DRAFT });
+                rec.setValue({ fieldId: BF.CURRENT_STEP, value: '' });
+                rec.setValue({ fieldId: BF.CURRENT_APPROVER, value: '' });
+                rec.setValue({ fieldId: BF.MATCHED_RULE, value: '' });
+                rec.setValue({ fieldId: BF.APPROVAL_PATH, value: '' });
+                rec.setValue({ fieldId: BF.MATCH_REASON, value: '' });
                 rec.setValue({ fieldId: BF.REVISION_NUMBER, value: 1 });
             }
 
@@ -105,17 +101,36 @@ define([
                 return;
             }
 
-            const historyHtml = historyLogger.buildHistoryHtml(
+            var historyHtml = historyLogger.buildHistoryHtml(
                 constants.TRANSACTION_TYPES.PURCHASE_ORDER,
                 rec.id
             );
 
-            const historyField = form.addField({
+            // Approval Routing summary at top (when matched), then history below
+            var matchReason = rec.getValue(BF.MATCH_REASON);
+            var routingHtml = '';
+            if (matchReason) {
+                routingHtml = buildExplainHtml(rec);
+            }
+
+            var wrapperStyle = 'margin: 0; padding: 0;';
+            var content = '<div style="' + wrapperStyle + '">';
+            if (routingHtml) {
+                content += '<div style="margin-bottom: 20px;">' + routingHtml + '</div>';
+            }
+            content += '<div style="margin-top: ' + (routingHtml ? '0' : '0') + ';">' + historyHtml + '</div>';
+            content += '</div>';
+
+            var tabId = 'custpage_p2p_approval_tab';
+            form.addTab({ id: tabId, label: 'P2P Approval' });
+
+            var historyField = form.addField({
                 id: 'custpage_p2p_history',
                 type: serverWidget.FieldType.INLINEHTML,
-                label: 'P2P Approval History'
+                label: 'Approval History',
+                container: tabId
             });
-            historyField.defaultValue = historyHtml || '';
+            historyField.defaultValue = content || '';
         } catch (error) {
             log.error('addHistorySection error', error);
         }
@@ -162,7 +177,8 @@ define([
      * Check if material fields changed that require re-approval
      */
     function hasRelevantChanges(oldRec, newRec, cfg) {
-        const mode = cfg.reapprovalMode || 'material';
+        const raw = cfg.reapprovalMode || 'material';
+        const mode = (raw === '2' || raw === 2 || raw === 'any') ? 'any' : 'material';
         
         // Body fields to check
         const bodyFields = cfg.reapprovalBody && cfg.reapprovalBody.length 
@@ -200,7 +216,7 @@ define([
     }
 
     function getDefaultBodyFields(mode) {
-        if (mode === 'any') {
+        if (mode === 'any') {  // ID 2 in P2P Reapproval Mode list
             return ['entity', 'subsidiary', 'department', 'location', 'currency', 
                     'exchangerate', 'trandate', 'terms', 'memo', 'class'];
         }
@@ -283,10 +299,15 @@ define([
      */
     function addActionButtons(form, rec) {
         const status = rec.getValue(BF.APPROVAL_STATUS);
+        const statusStr = status != null ? String(status) : '';
         const currentApprover = rec.getValue(BF.CURRENT_APPROVER);
         const currentUser = runtime.getCurrentUser().id;
 
-        if (status === constants.APPROVAL_STATUS.DRAFT) {
+        // Submit: Draft (1), Pending Submission (2), or empty/not set
+        const canSubmit = statusStr === constants.APPROVAL_STATUS.DRAFT
+            || statusStr === constants.APPROVAL_STATUS.PENDING_SUBMISSION
+            || statusStr === '';
+        if (canSubmit) {
             form.addButton({
                 id: 'custpage_p2p_submit',
                 label: 'Submit for Approval',
@@ -333,25 +354,24 @@ define([
      * Build explainability HTML
      */
     function buildExplainHtml(rec) {
-        const matchReason = rec.getValue(BF.MATCH_REASON) || '';
-        const pathId = rec.getValue(BF.APPROVAL_PATH);
-        const ruleId = rec.getValue(BF.MATCHED_RULE);
-        const currentStep = rec.getValue(BF.CURRENT_STEP);
-        const status = rec.getValue(BF.APPROVAL_STATUS);
+        var currentStep = rec.getValue(BF.CURRENT_STEP);
+        var status = rec.getValue(BF.APPROVAL_STATUS);
+        var matchReason = rec.getValue(BF.MATCH_REASON) || '';
 
-        let html = '<div style="padding:10px; background:#f8f9fa; border-radius:4px; margin:10px 0;">';
-        html += '<p style="margin:0 0 10px 0; font-weight:bold;">Approval Routing</p>';
-        
+        var cardStyle = 'padding: 16px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px;';
+        var html = '<div style="' + cardStyle + '">';
+        html += '<div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; margin-bottom: 8px;">Approval Routing</div>';
+
         if (status === constants.APPROVAL_STATUS.APPROVED) {
-            html += '<p style="color:#28a745; margin:0;">✓ Fully Approved</p>';
+            html += '<div style="color: #28a745; font-weight: 600; font-size: 14px;">✓ Fully Approved</div>';
         } else if (status === constants.APPROVAL_STATUS.REJECTED) {
-            html += '<p style="color:#dc3545; margin:0;">✗ Rejected</p>';
+            html += '<div style="color: #dc3545; font-weight: 600; font-size: 14px;">✗ Rejected</div>';
         } else if (status === constants.APPROVAL_STATUS.PENDING_APPROVAL) {
-            html += '<p style="margin:0;">⏳ Pending Approval (Step ' + currentStep + ')</p>';
+            html += '<div style="color: #0d6efd; font-weight: 600; font-size: 14px;">⏳ Pending Approval (Step ' + escapeHtml(currentStep) + ')</div>';
         }
 
         if (matchReason) {
-            html += '<p style="margin:10px 0 0 0; font-size:12px; color:#666;">' + escapeHtml(matchReason) + '</p>';
+            html += '<div style="margin-top: 10px; font-size: 13px; color: #495057; line-height: 1.4;">' + escapeHtml(matchReason) + '</div>';
         }
 
         html += '</div>';

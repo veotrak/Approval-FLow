@@ -6,12 +6,12 @@
 define([
     'N/record', 'N/search', 'N/runtime',
     './p2p_config', './p2p_delegation_manager', './p2p_token_manager',
-    './p2p_notification_manager', './p2p_history_logger',
+    './p2p_notification_manager', './p2p_history_logger', './p2p_native_status_sync',
     '../constants/p2p_constants_v2'
 ], function(
     record, search, runtime,
     config, delegationManager, tokenManager,
-    notificationManager, historyLogger, constants
+    notificationManager, historyLogger, nativeStatusSync, constants
 ) {
     'use strict';
 
@@ -57,6 +57,7 @@ define([
                 updateValues[BF.MATCHED_RULE] = params.match.rule.id;
             }
 
+            nativeStatusSync.addNativeStatusToValues(updateValues, constants.APPROVAL_STATUS.PENDING_APPROVAL);
             record.submitFields({
                 type: params.recordType,
                 id: params.recordId,
@@ -160,14 +161,16 @@ define([
      */
     function completeApproval(params) {
         try {
+            var values = {
+                [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.APPROVED,
+                [BF.CURRENT_STEP]: '',
+                [BF.CURRENT_APPROVER]: ''
+            };
+            nativeStatusSync.addNativeStatusToValues(values, constants.APPROVAL_STATUS.APPROVED);
             record.submitFields({
                 type: params.recordType,
                 id: params.recordId,
-                values: {
-                    [BF.APPROVAL_STATUS]: constants.APPROVAL_STATUS.APPROVED,
-                    [BF.CURRENT_STEP]: '',
-                    [BF.CURRENT_APPROVER]: ''
-                }
+                values: values
             });
 
             // Notify requestor
@@ -387,47 +390,66 @@ define([
     }
 
     /**
-     * Load path steps (helper)
+     * Load path steps (helper).
+     * Uses minimal search + record.load to avoid invalid column errors.
+     * Tries both PATH field conventions (p2p_ps vs ps).
      */
     function loadPathSteps(pathId) {
         if (!pathId) return [];
 
         const SF = constants.STEP_FIELDS;
-        const stepSearch = search.create({
-            type: constants.RECORD_TYPES.PATH_STEP,
-            filters: [
-                [SF.PATH, 'anyof', pathId],
-                'and',
-                [SF.ACTIVE, 'is', 'T']
-            ],
-            columns: [
-                search.createColumn({ name: SF.SEQUENCE, sort: search.Sort.ASC }),
-                SF.NAME,
-                SF.APPROVER_TYPE,
-                SF.ROLE,
-                SF.EMPLOYEE,
-                SF.MODE,
-                SF.REQUIRE_COMMENT,
-                SF.SLA_HOURS
-            ]
-        });
+        const pathFieldIds = [SF.PATH, 'custrecord_ps_path'];
+        let stepIds = [];
+
+        for (let i = 0; i < pathFieldIds.length && stepIds.length === 0; i++) {
+            try {
+                const stepSearch = search.create({
+                    type: constants.RECORD_TYPES.PATH_STEP,
+                    filters: [[pathFieldIds[i], 'anyof', pathId]],
+                    columns: [search.createColumn({ name: 'internalid', sort: search.Sort.ASC })]
+                });
+                stepSearch.run().each(function(result) {
+                    stepIds.push(result.id);
+                    return true;
+                });
+            } catch (err) {
+                log.debug('loadPathSteps', 'Search with ' + pathFieldIds[i] + ' failed: ' + err.message);
+            }
+        }
+
+        if (!stepIds.length) return [];
+
+        function getVal(rec, fid) {
+            try { return rec.getValue(fid); } catch (e) { return null; }
+        }
 
         const steps = [];
-        stepSearch.run().each(function(result) {
-            steps.push({
-                id: result.id,
-                sequence: parseInt(result.getValue(SF.SEQUENCE), 10),
-                name: result.getValue(SF.NAME),
-                approverType: result.getValue(SF.APPROVER_TYPE),
-                role: result.getValue(SF.ROLE),
-                employee: result.getValue(SF.EMPLOYEE),
-                mode: result.getValue(SF.MODE),
-                requireComment: result.getValue(SF.REQUIRE_COMMENT) === true || result.getValue(SF.REQUIRE_COMMENT) === 'T',
-                slaHours: parseInt(result.getValue(SF.SLA_HOURS), 10) || null
-            });
-            return true;
-        });
+        for (let j = 0; j < stepIds.length; j++) {
+            try {
+                const stepRec = record.load({ type: constants.RECORD_TYPES.PATH_STEP, id: stepIds[j] });
+                const isActive = getVal(stepRec, SF.ACTIVE);
+                if (isActive === false || isActive === 'F' || isActive === '0') continue;
 
+                const seq = getVal(stepRec, SF.SEQUENCE);
+                const reqComment = getVal(stepRec, SF.REQUIRE_COMMENT);
+                const slaVal = getVal(stepRec, SF.SLA_HOURS);
+                steps.push({
+                    id: stepIds[j],
+                    sequence: seq !== null && seq !== undefined ? parseInt(String(seq), 10) : (j + 1),
+                    name: getVal(stepRec, SF.NAME) || 'Step ' + (j + 1),
+                    approverType: getVal(stepRec, SF.APPROVER_TYPE),
+                    role: getVal(stepRec, SF.ROLE),
+                    employee: getVal(stepRec, SF.EMPLOYEE),
+                    mode: getVal(stepRec, SF.MODE),
+                    requireComment: reqComment === true || reqComment === 'T',
+                    slaHours: slaVal !== null && slaVal !== undefined ? parseInt(String(slaVal), 10) : null
+                });
+            } catch (err) {
+                log.warning('loadPathSteps', 'Failed to load step ' + stepIds[j] + ': ' + err.message);
+            }
+        }
+
+        steps.sort(function(a, b) { return a.sequence - b.sequence; });
         return steps;
     }
 

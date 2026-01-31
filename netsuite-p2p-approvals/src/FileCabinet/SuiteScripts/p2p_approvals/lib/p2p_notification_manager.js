@@ -7,7 +7,7 @@
  */
 define([
     'N/email', 'N/url', 'N/runtime', 'N/record', 'N/https', 'N/search',
-    './p2p_token_manager_v2', './p2p_config',
+    './p2p_token_manager', './p2p_config',
     '../constants/p2p_constants_v2'
 ], function(email, url, runtime, record, https, search, tokenManager, config, constants) {
     'use strict';

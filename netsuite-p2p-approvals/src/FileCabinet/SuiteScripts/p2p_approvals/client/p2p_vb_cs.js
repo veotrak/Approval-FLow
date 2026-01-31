@@ -296,7 +296,7 @@ define([
         try {
             const restletUrl = url.resolveScript({
                 scriptId: 'customscript_p2p_action_rl',
-                deploymentId: 'customdeploy_p2p_action_rl'
+                deploymentId: 'customdeploy_p2p_action'  // same as PO; use customdeploy_p2p_action_rl if you have a separate VB deployment
             });
 
             const payload = {
