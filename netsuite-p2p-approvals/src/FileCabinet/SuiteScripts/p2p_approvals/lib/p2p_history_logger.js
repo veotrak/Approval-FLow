@@ -268,6 +268,7 @@ define([
     function getActionColor(action) {
         const actionLower = String(action).toLowerCase();
         if (actionLower.indexOf('approve') !== -1) return '#4CAF50';
+        if (actionLower.indexOf('exception') !== -1) return '#FF9800';
         if (actionLower.indexOf('reject') !== -1) return '#f44336';
         if (actionLower.indexOf('cancel') !== -1) return '#6c757d';
         if (actionLower.indexOf('escalat') !== -1) return '#FF9800';
