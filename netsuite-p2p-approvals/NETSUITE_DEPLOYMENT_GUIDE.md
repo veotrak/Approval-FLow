@@ -99,6 +99,8 @@ Create or update deployments for each script. **Customization > Scripting > Scri
 
 **Access:** Use the deployment URL or add it to a custom menu for admins.
 
+**Rule Tester:** Supports both Record ID tests and Ad‑hoc (no record) tests. Admins can enable Debug Match to see rule evaluation details.
+
 ### 2.5 Suitelet – Analytics Dashboard
 
 | Setting | Value |
@@ -120,6 +122,8 @@ Create or update deployments for each script. **Customization > Scripting > Scri
 | Log Level | Debug (or Error in prod) |
 
 **Access:** Use the deployment URL or open from Config Portal.
+
+**Simulation:** Supports Record ID and Ad‑hoc simulation to validate rule criteria before creating a rule.
 
 ### 2.7 Suitelet – Delegation
 

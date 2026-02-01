@@ -242,6 +242,16 @@ define([
         if (values.customSegValues) csegValues.defaultValue = values.customSegValues;
 
         form.addFieldGroup({ id: 'custpage_sim_group', label: 'Rule Simulation (Optional)' });
+        const simMode = form.addField({
+            id: 'custpage_sim_mode',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Simulation Mode',
+            container: 'custpage_sim_group'
+        });
+        simMode.addSelectOption({ value: 'record', text: 'Record ID' });
+        simMode.addSelectOption({ value: 'adhoc', text: 'Ad-hoc (no record)' });
+        simMode.defaultValue = values.simMode || 'record';
+
         const simType = form.addField({
             id: 'custpage_sim_type',
             type: serverWidget.FieldType.SELECT,
@@ -262,6 +272,94 @@ define([
             container: 'custpage_sim_group'
         });
         if (values.simId) simId.defaultValue = values.simId;
+
+        const simAmount = form.addField({
+            id: 'custpage_sim_amount',
+            type: serverWidget.FieldType.CURRENCY,
+            label: 'Ad-hoc Amount',
+            container: 'custpage_sim_group'
+        });
+        if (values.simAmount) simAmount.defaultValue = values.simAmount;
+
+        const simSubs = form.addField({
+            id: 'custpage_sim_subsidiary',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Subsidiary',
+            source: 'subsidiary',
+            container: 'custpage_sim_group'
+        });
+        if (values.simSubsidiary) simSubs.defaultValue = values.simSubsidiary;
+
+        const simDept = form.addField({
+            id: 'custpage_sim_department',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Department',
+            source: 'department',
+            container: 'custpage_sim_group'
+        });
+        if (values.simDepartment) simDept.defaultValue = values.simDepartment;
+
+        const simLoc = form.addField({
+            id: 'custpage_sim_location',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Location',
+            source: 'location',
+            container: 'custpage_sim_group'
+        });
+        if (values.simLocation) simLoc.defaultValue = values.simLocation;
+
+        const simCurrency = form.addField({
+            id: 'custpage_sim_currency',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Currency',
+            source: 'currency',
+            container: 'custpage_sim_group'
+        });
+        if (values.simCurrency) simCurrency.defaultValue = values.simCurrency;
+
+        const simEntity = form.addField({
+            id: 'custpage_sim_entity',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Entity (Vendor/Customer)',
+            source: 'entity',
+            container: 'custpage_sim_group'
+        });
+        if (values.simEntity) simEntity.defaultValue = values.simEntity;
+
+        const simSalesRep = form.addField({
+            id: 'custpage_sim_salesrep',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Sales Rep',
+            source: 'employee',
+            container: 'custpage_sim_group'
+        });
+        if (values.simSalesRep) simSalesRep.defaultValue = values.simSalesRep;
+
+        const simProject = form.addField({
+            id: 'custpage_sim_project',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Project',
+            source: 'job',
+            container: 'custpage_sim_group'
+        });
+        if (values.simProject) simProject.defaultValue = values.simProject;
+
+        const simClass = form.addField({
+            id: 'custpage_sim_class',
+            type: serverWidget.FieldType.SELECT,
+            label: 'Ad-hoc Class',
+            source: 'classification',
+            container: 'custpage_sim_group'
+        });
+        if (values.simClass) simClass.defaultValue = values.simClass;
+
+        const simCustomSeg = form.addField({
+            id: 'custpage_sim_customseg_value',
+            type: serverWidget.FieldType.TEXT,
+            label: 'Ad-hoc Custom Segment Value(s)',
+            container: 'custpage_sim_group'
+        });
+        if (values.simCustomSegValue) simCustomSeg.defaultValue = values.simCustomSegValue;
     }
 
     function addPathPreview(form, options) {
@@ -323,8 +421,19 @@ define([
             classId: params.custpage_class,
             customSegField: params.custpage_cseg_field,
             customSegValues: params.custpage_cseg_values,
+            simMode: params.custpage_sim_mode,
             simType: params.custpage_sim_type,
-            simId: params.custpage_sim_id
+            simId: params.custpage_sim_id,
+            simAmount: params.custpage_sim_amount,
+            simSubsidiary: params.custpage_sim_subsidiary,
+            simDepartment: params.custpage_sim_department,
+            simLocation: params.custpage_sim_location,
+            simCurrency: params.custpage_sim_currency,
+            simEntity: params.custpage_sim_entity,
+            simSalesRep: params.custpage_sim_salesrep,
+            simProject: params.custpage_sim_project,
+            simClass: params.custpage_sim_class,
+            simCustomSegValue: params.custpage_sim_customseg_value
         };
 
         const errors = validateRule(values);
@@ -387,22 +496,47 @@ define([
     }
 
     function simulateRule(values) {
-        if (!values.simType || !values.simId) return '';
-        try {
-            const tran = record.load({ type: values.simType, id: values.simId });
-            const context = {
-                subsidiary: tran.getValue('subsidiary'),
-                amount: parseFloat(tran.getValue('total')) || 0,
-                department: tran.getValue('department'),
-                location: tran.getValue('location'),
-                currency: tran.getValue('currency'),
-                customer: tran.getValue('entity'),
-                salesRep: tran.getValue('salesrep'),
-                project: tran.getValue('job'),
-                classId: tran.getValue('class'),
-                customSegValue: values.customSegField ? tran.getValue(values.customSegField) : null
-            };
+        const simMode = values.simMode || 'record';
+        let context = null;
 
+        if (simMode === 'record') {
+            if (!values.simType || !values.simId) return '';
+            try {
+                const tran = record.load({ type: values.simType, id: values.simId });
+                context = {
+                    subsidiary: tran.getValue('subsidiary'),
+                    amount: parseFloat(tran.getValue('total')) || 0,
+                    department: tran.getValue('department'),
+                    location: tran.getValue('location'),
+                    currency: tran.getValue('currency'),
+                    customer: tran.getValue('entity'),
+                    salesRep: tran.getValue('salesrep'),
+                    project: tran.getValue('job'),
+                    classId: tran.getValue('class'),
+                    customSegValue: values.customSegField ? tran.getValue(values.customSegField) : null
+                };
+            } catch (e) {
+                return buildMessageHtml('Simulation failed: ' + e.message, 'error');
+            }
+        } else {
+            if (!values.simAmount) {
+                return buildMessageHtml('Ad-hoc simulation requires Amount.', 'warn');
+            }
+            context = {
+                subsidiary: values.simSubsidiary,
+                amount: parseFloat(values.simAmount) || 0,
+                department: values.simDepartment,
+                location: values.simLocation,
+                currency: values.simCurrency,
+                customer: values.simEntity,
+                salesRep: values.simSalesRep,
+                project: values.simProject,
+                classId: values.simClass,
+                customSegValue: values.simCustomSegValue || null
+            };
+        }
+
+        try {
             const checks = [];
             let matches = true;
 

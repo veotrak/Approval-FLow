@@ -34,7 +34,7 @@ define([
 
         addInfo(form);
         addRuleBuilderLink(form);
-        addTestSection(form, options);
+        addTestSection(form, options, isAdmin);
         addRuleList(form);
         addPathList(form);
 
@@ -72,36 +72,192 @@ define([
         }
     }
 
-    function addTestSection(form, options) {
+    function addTestSection(form, options, isAdmin) {
+        const testMode = (options && options.testMode) || 'record';
         const testType = (options && options.testType) || '';
         const testId = (options && options.testId) || '';
         const resultHtml = (options && options.resultHtml) || '';
+        const adHoc = (options && options.adHoc) || {};
+        const debugEnabled = (options && options.debugEnabled) || false;
 
         form.addFieldGroup({
             id: 'custpage_test_group',
             label: 'Rule Tester'
         });
 
-        const typeField = form.addField({
-            id: 'custpage_test_type',
+        const modeField = form.addField({
+            id: 'custpage_test_mode',
             type: serverWidget.FieldType.SELECT,
-            label: 'Record Type',
+            label: 'Test Mode',
             container: 'custpage_test_group'
         });
-        typeField.addSelectOption({ value: '', text: '-- Select --' });
-        typeField.addSelectOption({ value: 'purchaseorder', text: 'Purchase Order' });
-        typeField.addSelectOption({ value: 'vendorbill', text: 'Vendor Bill' });
-        typeField.addSelectOption({ value: 'salesorder', text: 'Sales Order' });
-        typeField.addSelectOption({ value: 'invoice', text: 'Invoice' });
-        typeField.defaultValue = testType;
+        modeField.addSelectOption({ value: 'record', text: 'Record ID' });
+        modeField.addSelectOption({ value: 'adhoc', text: 'Ad-hoc (no record)' });
+        modeField.defaultValue = testMode;
 
-        const idField = form.addField({
-            id: 'custpage_test_id',
-            type: serverWidget.FieldType.INTEGER,
-            label: 'Record ID',
-            container: 'custpage_test_group'
-        });
-        if (testId) idField.defaultValue = testId;
+        if (testMode === 'record') {
+            const typeField = form.addField({
+                id: 'custpage_test_type',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Record Type',
+                container: 'custpage_test_group'
+            });
+            typeField.addSelectOption({ value: '', text: '-- Select --' });
+            typeField.addSelectOption({ value: 'purchaseorder', text: 'Purchase Order' });
+            typeField.addSelectOption({ value: 'vendorbill', text: 'Vendor Bill' });
+            typeField.addSelectOption({ value: 'salesorder', text: 'Sales Order' });
+            typeField.addSelectOption({ value: 'invoice', text: 'Invoice' });
+            typeField.defaultValue = testType;
+
+            const idField = form.addField({
+                id: 'custpage_test_id',
+                type: serverWidget.FieldType.INTEGER,
+                label: 'Record ID',
+                container: 'custpage_test_group'
+            });
+            if (testId) idField.defaultValue = testId;
+        } else {
+            const tranType = form.addField({
+                id: 'custpage_test_tran_type',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Transaction Type',
+                container: 'custpage_test_group'
+            });
+            tranType.addSelectOption({ value: '', text: '-- Select --' });
+            tranType.addSelectOption({ value: 'purchaseorder', text: 'Purchase Order' });
+            tranType.addSelectOption({ value: 'vendorbill', text: 'Vendor Bill' });
+            tranType.addSelectOption({ value: 'salesorder', text: 'Sales Order' });
+            tranType.addSelectOption({ value: 'invoice', text: 'Invoice' });
+            if (adHoc.tranType) tranType.defaultValue = adHoc.tranType;
+
+            const amountField = form.addField({
+                id: 'custpage_test_amount',
+                type: serverWidget.FieldType.CURRENCY,
+                label: 'Amount',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.amount) amountField.defaultValue = adHoc.amount;
+
+            const subsField = form.addField({
+                id: 'custpage_test_subsidiary',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Subsidiary',
+                source: 'subsidiary',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.subsidiary) subsField.defaultValue = adHoc.subsidiary;
+
+            const deptField = form.addField({
+                id: 'custpage_test_department',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Department',
+                source: 'department',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.department) deptField.defaultValue = adHoc.department;
+
+            const locField = form.addField({
+                id: 'custpage_test_location',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Location',
+                source: 'location',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.location) locField.defaultValue = adHoc.location;
+
+            const currencyField = form.addField({
+                id: 'custpage_test_currency',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Currency',
+                source: 'currency',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.currency) currencyField.defaultValue = adHoc.currency;
+
+            const entityField = form.addField({
+                id: 'custpage_test_entity',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Entity (Vendor/Customer)',
+                source: 'entity',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.entity) entityField.defaultValue = adHoc.entity;
+
+            const salesRepField = form.addField({
+                id: 'custpage_test_salesrep',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Sales Rep',
+                source: 'employee',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.salesRep) salesRepField.defaultValue = adHoc.salesRep;
+
+            const projectField = form.addField({
+                id: 'custpage_test_project',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Project',
+                source: 'job',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.project) projectField.defaultValue = adHoc.project;
+
+            const classField = form.addField({
+                id: 'custpage_test_class',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Class',
+                source: 'classification',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.classId) classField.defaultValue = adHoc.classId;
+
+            const riskField = form.addField({
+                id: 'custpage_test_risk',
+                type: serverWidget.FieldType.INTEGER,
+                label: 'Risk Score (optional)',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.riskScore !== undefined && adHoc.riskScore !== null) {
+                riskField.defaultValue = String(adHoc.riskScore);
+            }
+
+            const exceptionField = form.addField({
+                id: 'custpage_test_exception',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Exception Type (VB only)',
+                source: 'customlist_p2p_exception_type_list',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.exceptionType) exceptionField.defaultValue = adHoc.exceptionType;
+
+            const csegField = form.addField({
+                id: 'custpage_test_cseg_field',
+                type: serverWidget.FieldType.TEXT,
+                label: 'Custom Segment Field ID (optional)',
+                container: 'custpage_test_group'
+            });
+            csegField.setHelpText({
+                help: 'Enter the transaction body field ID (e.g., custbody_cseg_region).'
+            });
+            if (adHoc.customSegField) csegField.defaultValue = adHoc.customSegField;
+
+            const csegValues = form.addField({
+                id: 'custpage_test_cseg_values',
+                type: serverWidget.FieldType.TEXT,
+                label: 'Custom Segment Values (comma-separated internal IDs)',
+                container: 'custpage_test_group'
+            });
+            if (adHoc.customSegValues) csegValues.defaultValue = adHoc.customSegValues;
+        }
+
+        if (isAdmin) {
+            const debugField = form.addField({
+                id: 'custpage_test_debug',
+                type: serverWidget.FieldType.CHECKBOX,
+                label: 'Debug Match (admin)',
+                container: 'custpage_test_group'
+            });
+            debugField.defaultValue = debugEnabled ? 'T' : 'F';
+        }
 
         form.addSubmitButton({ label: 'Run Test' });
 
@@ -117,27 +273,89 @@ define([
 
     function handleTest(context) {
         const params = context.request.parameters;
+        const isAdmin = String(runtime.getCurrentUser().role) === ADMIN_ROLE;
+        const testMode = params.custpage_test_mode || 'record';
+        const debugEnabled = isAdmin && params.custpage_test_debug === 'T';
         const recordType = params.custpage_test_type;
         const recordId = params.custpage_test_id;
+        const adHoc = extractAdHocParams(params);
 
         let resultHtml = '';
-        if (!recordType || !recordId) {
-            resultHtml = buildMessageHtml('Please provide both Record Type and Record ID.', 'warn');
-            return renderForm(context, { testType: recordType, testId: recordId, resultHtml: resultHtml });
+        if (testMode === 'record') {
+            if (!recordType || !recordId) {
+                resultHtml = buildMessageHtml('Please provide both Record Type and Record ID.', 'warn');
+                return renderForm(context, {
+                    testMode: testMode,
+                    testType: recordType,
+                    testId: recordId,
+                    debugEnabled: debugEnabled,
+                    resultHtml: resultHtml
+                });
+            }
+
+            const preview = controller.previewMatch({
+                recordType: recordType,
+                recordId: recordId
+            });
+
+            if (!preview || !preview.success) {
+                resultHtml = buildMessageHtml(preview && preview.message ? preview.message : 'No match found.', 'error');
+                return renderForm(context, {
+                    testMode: testMode,
+                    testType: recordType,
+                    testId: recordId,
+                    debugEnabled: debugEnabled,
+                    resultHtml: resultHtml
+                });
+            }
+
+            resultHtml = buildMatchHtml(preview.match);
+            if (debugEnabled) {
+                const debug = controller.debugMatch({ recordType: recordType, recordId: recordId });
+                resultHtml += buildDebugHtml(debug);
+            }
+            return renderForm(context, {
+                testMode: testMode,
+                testType: recordType,
+                testId: recordId,
+                debugEnabled: debugEnabled,
+                resultHtml: resultHtml
+            });
         }
 
-        const preview = controller.previewMatch({
-            recordType: recordType,
-            recordId: recordId
+        // Ad-hoc mode
+        if (!adHoc.tranType || !adHoc.amount) {
+            resultHtml = buildMessageHtml('Please provide Transaction Type and Amount for ad-hoc testing.', 'warn');
+            return renderForm(context, {
+                testMode: testMode,
+                adHoc: adHoc,
+                debugEnabled: debugEnabled,
+                resultHtml: resultHtml
+            });
+        }
+
+        const previewAdHoc = controller.previewMatchAdHoc(adHoc);
+        if (!previewAdHoc || !previewAdHoc.success) {
+            resultHtml = buildMessageHtml(previewAdHoc && previewAdHoc.message ? previewAdHoc.message : 'No match found.', 'error');
+            return renderForm(context, {
+                testMode: testMode,
+                adHoc: adHoc,
+                debugEnabled: debugEnabled,
+                resultHtml: resultHtml
+            });
+        }
+
+        resultHtml = buildMatchHtml(previewAdHoc.match);
+        if (debugEnabled) {
+            const debugAdHoc = controller.debugMatchAdHoc(adHoc);
+            resultHtml += buildDebugHtml(debugAdHoc);
+        }
+        return renderForm(context, {
+            testMode: testMode,
+            adHoc: adHoc,
+            debugEnabled: debugEnabled,
+            resultHtml: resultHtml
         });
-
-        if (!preview || !preview.success) {
-            resultHtml = buildMessageHtml(preview && preview.message ? preview.message : 'No match found.', 'error');
-            return renderForm(context, { testType: recordType, testId: recordId, resultHtml: resultHtml });
-        }
-
-        resultHtml = buildMatchHtml(preview.match);
-        return renderForm(context, { testType: recordType, testId: recordId, resultHtml: resultHtml });
     }
 
     function buildMatchHtml(match) {
@@ -172,8 +390,69 @@ define([
             html += '</ol>';
         }
 
+        if (match.isFallback) {
+            html += '<div style="margin-top: 8px; color: #b45309;">Fallback path used.</div>';
+        }
+
         html += '</div>';
         return html;
+    }
+
+    function buildDebugHtml(debug) {
+        if (!debug) return '';
+        if (debug.success === false) {
+            return buildMessageHtml(debug.message || 'Debug match failed.', 'error');
+        }
+        const rules = debug.rules || [];
+        const limit = 20;
+        let html = '<div style="margin-top: 12px; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef; background: #fafafa;">';
+        html += '<div style="font-weight: 600; margin-bottom: 6px;">Debug Match</div>';
+        html += '<div style="margin-bottom: 8px; color:#495057;">Rules: ' + escapeHtml(debug.ruleCount) +
+            ' | Matched: ' + escapeHtml(debug.matchedCount) + '</div>';
+
+        rules.slice(0, limit).forEach(function(rule) {
+            const evals = rule.evaluation && rule.evaluation.checks ? rule.evaluation.checks : [];
+            html += '<div style="margin: 10px 0; padding: 8px; border: 1px solid #e9ecef; background:#fff; border-radius:4px;">';
+            html += '<div style="font-weight:600;">' + escapeHtml(rule.name || rule.code || ('#' + rule.id)) +
+                ' (Priority ' + escapeHtml(rule.priority) + ')' +
+                (rule.evaluation && rule.evaluation.matches ? ' ✓' : ' ✗') + '</div>';
+            if (evals.length) {
+                html += '<ul style="margin:6px 0 0 18px;">';
+                evals.forEach(function(check) {
+                    html += '<li style="color:' + (check.passed ? '#0f5132' : '#b02a37') + ';">' +
+                        (check.passed ? '✓ ' : '✗ ') + escapeHtml(check.field) + ': ' +
+                        escapeHtml(check.actual) + ' (expected ' + escapeHtml(check.expected) + ')' +
+                        '</li>';
+                });
+                html += '</ul>';
+            }
+            html += '</div>';
+        });
+
+        if (rules.length > limit) {
+            html += '<div style="color:#6c757d;">Showing first ' + limit + ' rules.</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function extractAdHocParams(params) {
+        return {
+            tranType: params.custpage_test_tran_type || '',
+            amount: params.custpage_test_amount || '',
+            subsidiary: params.custpage_test_subsidiary || '',
+            department: params.custpage_test_department || '',
+            location: params.custpage_test_location || '',
+            currency: params.custpage_test_currency || '',
+            entity: params.custpage_test_entity || '',
+            salesRep: params.custpage_test_salesrep || '',
+            project: params.custpage_test_project || '',
+            classId: params.custpage_test_class || '',
+            riskScore: params.custpage_test_risk || '',
+            exceptionType: params.custpage_test_exception || '',
+            customSegField: params.custpage_test_cseg_field || '',
+            customSegValues: params.custpage_test_cseg_values || ''
+        };
     }
 
     function addRuleList(form) {

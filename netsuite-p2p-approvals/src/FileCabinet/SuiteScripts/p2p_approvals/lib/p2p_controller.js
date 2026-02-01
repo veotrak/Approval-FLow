@@ -93,6 +93,25 @@ define([
     }
 
     /**
+     * Preview rule match with ad-hoc criteria (no record required)
+     * @param {Object} params
+     * @returns {Object} Result with matched rule/path or fallback
+     */
+    function previewMatchAdHoc(params) {
+        try {
+            const context = buildAdHocContext(params);
+            const match = ruleMatcher.findMatch(context);
+            if (!match) {
+                return { success: false, message: 'No matching approval rule found and no fallback configured.' };
+            }
+            return { success: true, match: match };
+        } catch (error) {
+            log.error('previewMatchAdHoc error', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
      * Debug rule matching with detailed evaluations
      */
     function debugMatch(params) {
@@ -103,6 +122,19 @@ define([
             return ruleMatcher.debugMatch(context);
         } catch (error) {
             log.error('debugMatch error', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Debug rule matching with ad-hoc criteria (admin)
+     */
+    function debugMatchAdHoc(params) {
+        try {
+            const context = buildAdHocContext(params);
+            return ruleMatcher.debugMatch(context);
+        } catch (error) {
+            log.error('debugMatchAdHoc error', error);
             return { success: false, message: error.message };
         }
     }
@@ -216,6 +248,45 @@ define([
             riskScore: parseFloat(tran.getValue(BF.AI_RISK_SCORE)) || null,
             exceptionType: tran.getValue(BF.EXCEPTION_TYPE) || null
         };
+    }
+
+    function buildAdHocContext(params) {
+        if (!params || !params.tranType) {
+            throw new Error('Transaction Type is required.');
+        }
+        const tranType = constants.TRANSACTION_TYPE_MAP[params.tranType] || params.tranType;
+        const amount = parseFloat(params.amount);
+        if (isNaN(amount)) {
+            throw new Error('Amount is required.');
+        }
+        const context = {
+            tranType: tranType,
+            recordType: params.tranType || null,
+            recordId: null,
+            subsidiary: params.subsidiary || null,
+            amount: amount,
+            department: params.department || null,
+            location: params.location || null,
+            customer: params.entity || null,
+            salesRep: params.salesRep || null,
+            project: params.project || null,
+            classId: params.classId || null,
+            riskScore: params.riskScore !== undefined && params.riskScore !== null && params.riskScore !== ''
+                ? parseFloat(params.riskScore)
+                : null,
+            exceptionType: params.exceptionType || null
+        };
+
+        if (params.customSegField && params.customSegValues) {
+            const values = String(params.customSegValues)
+                .split(',')
+                .map(function(v) { return v.trim(); })
+                .filter(function(v) { return v; });
+            context.customSegments = {};
+            context.customSegments[params.customSegField] = values;
+        }
+
+        return context;
     }
 
     /**
@@ -635,7 +706,9 @@ define([
         handleRecall: handleRecall,
         handleResubmit: handleResubmit,
         previewMatch: previewMatch,
+        previewMatchAdHoc: previewMatchAdHoc,
         debugMatch: debugMatch,
+        debugMatchAdHoc: debugMatchAdHoc,
         listPathSteps: listPathSteps,
         findPendingTaskForUser: findPendingTaskForUser,
         checkSegregationOfDuties: checkSegregationOfDuties
